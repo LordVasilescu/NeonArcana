@@ -12,6 +12,7 @@ local SpellData = require(ReplicatedStorage.Shared.SpellData)
 local QuestData = require(ReplicatedStorage.Shared.QuestData)
 local ZoneData = require(ReplicatedStorage.Shared.ZoneData)
 local GearData = require(ReplicatedStorage.Shared.GearData)
+local SideQuestData = require(ReplicatedStorage.Shared.SideQuestData)
 local CrownService = require(script.Parent.CrownService)
 
 local remotes = ReplicatedStorage:WaitForChild("Remotes")
@@ -45,6 +46,7 @@ local function defaultProfile()
 		zones = { circuit_row = true, static_alley = true, chrome_strip = true }, -- mainframe_blvd is premium
 		gear = {}, -- slot -> gearId
 		inventory = {}, -- unequipped gearIds
+		sideQuests = {}, -- questId -> { kills = n, done = bool }
 	}
 end
 
@@ -64,6 +66,13 @@ function PlayerDataService.pushHUD(player)
 	local quest = QuestData.list[p.questIndex]
 	local questText = quest and ("%s (%d/%d)"):format(quest.title, p.questKills, quest.count)
 		or "All quests complete — more districts soon!"
+	for questId, state in p.sideQuests or {} do
+		local sideQuest = SideQuestData.byId[questId]
+		if sideQuest and not state.done then
+			questText ..= ("\n[side] %s (%d/%d)"):format(sideQuest.title, state.kills, sideQuest.count)
+			break -- one side line keeps the HUD readable
+		end
+	end
 	hudUpdate:FireClient(player, {
 		level = p.level,
 		xp = p.xp,
@@ -99,7 +108,32 @@ function PlayerDataService.addCredits(player, amount: number)
 	end
 end
 
--- Called by BattleRunner on every win. Advances the quest chain.
+-- Accept the next open side quest for a zone (called by Fixer NPCs).
+function PlayerDataService.acceptSideQuest(player, zoneId: string)
+	local p = profiles[player]
+	if not p then
+		return
+	end
+	p.sideQuests = p.sideQuests or {}
+	for _, quest in SideQuestData.byZone[zoneId] or {} do
+		local state = p.sideQuests[quest.id]
+		if not state then
+			p.sideQuests[quest.id] = { kills = 0, done = false }
+			PlayerDataService.notify(player, ("SIDE JOB: %s (%d %s)"):format(quest.title, quest.count, quest.enemy))
+			PlayerDataService.pushHUD(player)
+			return
+		elseif not state.done then
+			PlayerDataService.notify(
+				player,
+				("Still working: %s (%d/%d)"):format(quest.title, state.kills, quest.count)
+			)
+			return
+		end
+	end
+	PlayerDataService.notify(player, "No more side jobs here. Check another street.")
+end
+
+-- Called by BattleRunner on every win. Advances the main chain + active side quests.
 function PlayerDataService.recordKill(player, enemyId: string)
 	local p = profiles[player]
 	if not p then
@@ -114,6 +148,21 @@ function PlayerDataService.recordKill(player, enemyId: string)
 			PlayerDataService.addXP(player, quest.xp)
 			p.credits += quest.credits
 			PlayerDataService.notify(player, ("QUEST COMPLETE! +%d XP, +%d credits"):format(quest.xp, quest.credits))
+		end
+	end
+	for questId, state in p.sideQuests or {} do
+		local sideQuest = SideQuestData.byId[questId]
+		if sideQuest and not state.done and sideQuest.enemy == enemyId then
+			state.kills += 1
+			if state.kills >= sideQuest.count then
+				state.done = true
+				PlayerDataService.addXP(player, sideQuest.xp)
+				p.credits += sideQuest.credits
+				PlayerDataService.notify(
+					player,
+					("SIDE JOB DONE: %s! +%d XP, +%d credits"):format(sideQuest.title, sideQuest.xp, sideQuest.credits)
+				)
+			end
 		end
 	end
 	PlayerDataService.pushHUD(player)

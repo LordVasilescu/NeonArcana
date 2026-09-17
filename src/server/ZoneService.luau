@@ -123,6 +123,34 @@ local function buildLamps(folder: Folder, dir: Vector3)
 	end
 end
 
+-- Fixer NPC at each street mouth: touch to pick up side jobs for that street.
+local function buildFixer(zone, folder: Folder, entrance: Vector3, dir: Vector3)
+	local right = Vector3.new(-dir.Z, 0, dir.X)
+	local fixer = part({
+		Name = zone.id .. "_fixer",
+		Size = Vector3.new(2.2, 4.8, 2.2),
+		Position = entrance + dir * 6 + right * (ZoneData.ROAD_WIDTH / 2 - 3) + Vector3.new(0, 3, 0),
+		Material = Enum.Material.Neon,
+		Color = Color3.fromRGB(120, 255, 220),
+	})
+	addSign(fixer, ("FIXER — %s\nTouch for side jobs"):format(zone.name))
+	fixer.Parent = folder
+
+	local debounce = {}
+	fixer.Touched:Connect(function(hit)
+		local character = hit.Parent
+		local player = character and Players:GetPlayerFromCharacter(character)
+		if not player or debounce[player] then
+			return
+		end
+		debounce[player] = true
+		task.delay(2, function()
+			debounce[player] = nil
+		end)
+		PlayerDataService.acceptSideQuest(player, zone.id)
+	end)
+end
+
 local function buildGate(zone, folder: Folder, entrance: Vector3, dir: Vector3)
 	local right = Vector3.new(-dir.Z, 0, dir.X)
 	local gate = part({
@@ -202,6 +230,7 @@ function ZoneService.build()
 
 		buildSkyline(folder, dir, isXAxis)
 		buildLamps(folder, dir)
+		buildFixer(zone, folder, entrance, dir)
 
 		if zone.crownCost > 0 then
 			buildGate(zone, folder, entrance, dir)
