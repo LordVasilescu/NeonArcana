@@ -1,6 +1,8 @@
 --!strict
 -- EnemyData: the mob roster. Deck ids must exist in SpellData.
 
+export type Drop = { gear: string, chance: number }
+
 export type Enemy = {
 	id: string,
 	name: string,
@@ -11,6 +13,7 @@ export type Enemy = {
 	xp: number,
 	credits: number,
 	boss: boolean?,
+	drops: { Drop }?,
 }
 
 local Enemies: { [string]: Enemy } = {
@@ -23,6 +26,7 @@ local Enemies: { [string]: Enemy } = {
 		deck = { "ember_jab", "overclock" },
 		xp = 40,
 		credits = 15,
+		drops = { { gear = "scrap_visor", chance = 0.2 }, { gear = "wire_boots", chance = 0.1 } },
 	},
 	wire_rat = {
 		id = "wire_rat",
@@ -33,6 +37,7 @@ local Enemies: { [string]: Enemy } = {
 		deck = { "static_shock", "surge_blade" },
 		xp = 55,
 		credits = 20,
+		drops = { { gear = "punk_jacket", chance = 0.2 }, { gear = "wire_boots", chance = 0.15 } },
 	},
 	chrome_ganger = {
 		id = "chrome_ganger",
@@ -43,6 +48,7 @@ local Enemies: { [string]: Enemy } = {
 		deck = { "frost_packet", "firewall", "cryo_spike" },
 		xp = 80,
 		credits = 35,
+		drops = { { gear = "chrome_visor", chance = 0.15 }, { gear = "ganger_plate", chance = 0.15 } },
 	},
 	data_wraith = {
 		id = "data_wraith",
@@ -53,6 +59,7 @@ local Enemies: { [string]: Enemy } = {
 		deck = { "siphon", "data_drain", "corrupt_blade" },
 		xp = 110,
 		credits = 50,
+		drops = { { gear = "wraith_striders", chance = 0.18 } },
 	},
 	sentinel_unit = {
 		id = "sentinel_unit",
@@ -63,6 +70,7 @@ local Enemies: { [string]: Enemy } = {
 		deck = { "cryo_spike", "firewall", "glacier_crash" },
 		xp = 150,
 		credits = 70,
+		drops = { { gear = "sentinel_helm", chance = 0.15 } },
 	},
 	proxy_knight = {
 		id = "proxy_knight",
@@ -73,6 +81,7 @@ local Enemies: { [string]: Enemy } = {
 		deck = { "null_strike", "fork_bomb", "sandbox" },
 		xp = 200,
 		credits = 90,
+		drops = { { gear = "knight_plate", chance = 0.18 } },
 	},
 	grid_stalker = {
 		id = "grid_stalker",
@@ -83,6 +92,7 @@ local Enemies: { [string]: Enemy } = {
 		deck = { "siphon", "data_drain", "hex_trap", "memory_wipe" },
 		xp = 260,
 		credits = 120,
+		drops = { { gear = "stalker_treads", chance = 0.18 } },
 	},
 	overseer_prime = {
 		id = "overseer_prime",
@@ -93,6 +103,7 @@ local Enemies: { [string]: Enemy } = {
 		deck = { "static_shock", "surge_blade", "arc_flash", "voltage_dump" },
 		xp = 1200,
 		credits = 800,
+		drops = { { gear = "overseer_halo", chance = 1 } },
 		boss = true,
 	},
 	glitch_king = {
@@ -104,6 +115,7 @@ local Enemies: { [string]: Enemy } = {
 		deck = { "specter_bolt", "hologram_strike", "ghost_blade", "poltergeist" },
 		xp = 600,
 		credits = 400,
+		drops = { { gear = "glitch_crown", chance = 1 } },
 		boss = true,
 	},
 }

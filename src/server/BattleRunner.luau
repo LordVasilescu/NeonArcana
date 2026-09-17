@@ -70,11 +70,13 @@ function BattleRunner.startBattle(player: Player, enemyId: string)
 
 	local profile = PlayerDataService.get(player)
 	local level = (profile and profile.level) or 1
-	local heroHP = BASE_HP + HP_PER_LEVEL * (level - 1)
-	local heroPower = math.min(0.05 + 0.025 * (level - 1), 0.5) -- power pip chance grows with level
+	local gearHP, gearAcc, gearPower = PlayerDataService.getGearStats(player)
+	local heroHP = BASE_HP + HP_PER_LEVEL * (level - 1) + gearHP
+	local heroPower = math.min(0.05 + 0.025 * (level - 1) + gearPower, 0.6) -- power pips grow with level + gear
 	local foePower = enemyDef.boss and 0.25 or 0.1
 
-	local hero = CombatService.newCombatant(player, player.Name, heroHP, PlayerDataService.getDeck(player), heroPower)
+	local hero =
+		CombatService.newCombatant(player, player.Name, heroHP, PlayerDataService.getDeck(player), heroPower, gearAcc)
 	local foe = CombatService.newCombatant(nil, enemyDef.name, enemyDef.health, table.clone(enemyDef.deck), foePower)
 	local battle = CombatService.newBattle({ hero, foe })
 	inBattle[player] = battle
@@ -105,6 +107,13 @@ function BattleRunner.startBattle(player: Player, enemyId: string)
 			xpGain, creditGain = enemyDef.xp, enemyDef.credits
 			PlayerDataService.addXP(player, xpGain)
 			PlayerDataService.addCredits(player, creditGain)
+			if enemyDef.drops then
+				for _, drop in enemyDef.drops do
+					if math.random() < drop.chance then
+						PlayerDataService.awardGear(player, drop.gear)
+					end
+				end
+			end
 			PlayerDataService.recordKill(player, enemyId) -- also pushes HUD
 		end
 		if player.Parent then

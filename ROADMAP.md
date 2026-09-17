@@ -8,7 +8,7 @@ smoke test -> commit. Add smoke checks for new systems as they land.
 - [x] 4 districts + hub, quest chain, 8 enemy types, 2 bosses
 - [x] XP/levels, credits, crowns, premium gate (Mainframe Blvd)
 - [x] Night city: skyline, lamps, fog
-- [ ] Gear system: hats/robes/boots as stat items (health, accuracy, power chance), drops from enemies
+- [x] Gear system: visor/jacket/boots stat items (health, accuracy, power chance), enemy drops, auto-equip upgrades
 - [ ] Side quests (3 per street) with quest giver NPCs (billboard NPCs until Tripo models land)
 - [ ] Deck editor UI: choose which owned cards go in your deck (W101's deckbuilding)
 - [ ] Card packs in shop: 100 crowns/pack, random card cosmetic variants (SHOW ODDS — Roblox rule)

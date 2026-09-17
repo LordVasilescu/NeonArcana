@@ -18,6 +18,7 @@ export type Combatant = {
 	health: number,
 	cycles: number, -- pips
 	powerChance: number, -- chance a round's cycle gain is worth 2 (power pips)
+	accuracyBonus: number, -- flat % added to every card's accuracy (gear)
 	blades: { { school: string, amount: number } },
 	traps: { { amount: number } },
 	shields: { { amount: number } },
@@ -39,7 +40,8 @@ function CombatService.newCombatant(
 	name: string,
 	health: number,
 	deck: { string },
-	powerChance: number?
+	powerChance: number?,
+	accuracyBonus: number?
 ): Combatant
 	return {
 		player = player,
@@ -48,6 +50,7 @@ function CombatService.newCombatant(
 		health = health,
 		cycles = 0,
 		powerChance = powerChance or 0,
+		accuracyBonus = accuracyBonus or 0,
 		blades = {},
 		traps = {},
 		shields = {},
@@ -83,8 +86,8 @@ function CombatService.requestCast(battle: Battle, casterIndex: number, spellId:
 end
 
 local function applySpell(battle: Battle, caster: Combatant, spell: SpellData.Spell, target: Combatant)
-	-- Fizzle check (the W101 accuracy gamble)
-	if rng:NextNumber(0, 100) > spell.accuracy then
+	-- Fizzle check (the W101 accuracy gamble); gear accuracy shifts the odds
+	if rng:NextNumber(0, 100) > math.min(spell.accuracy + caster.accuracyBonus, 100) then
 		table.insert(battle.lastEvents, ("%s cast %s — FIZZLED!"):format(caster.name, spell.name))
 		return
 	end

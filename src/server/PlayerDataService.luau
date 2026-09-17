@@ -11,6 +11,7 @@ local RunService = game:GetService("RunService")
 local SpellData = require(ReplicatedStorage.Shared.SpellData)
 local QuestData = require(ReplicatedStorage.Shared.QuestData)
 local ZoneData = require(ReplicatedStorage.Shared.ZoneData)
+local GearData = require(ReplicatedStorage.Shared.GearData)
 local CrownService = require(script.Parent.CrownService)
 
 local remotes = ReplicatedStorage:WaitForChild("Remotes")
@@ -41,7 +42,9 @@ local function defaultProfile()
 		credits = 0,
 		questIndex = 1,
 		questKills = 0,
-		zones = { circuit_row = true, static_alley = true }, -- chrome_strip is premium
+		zones = { circuit_row = true, static_alley = true, chrome_strip = true }, -- mainframe_blvd is premium
+		gear = {}, -- slot -> gearId
+		inventory = {}, -- unequipped gearIds
 	}
 end
 
@@ -119,6 +122,53 @@ end
 function PlayerDataService.isZoneUnlocked(player, zoneId: string): boolean
 	local p = profiles[player]
 	return p ~= nil and p.zones[zoneId] == true
+end
+
+-- Sum of stat bonuses from equipped gear.
+function PlayerDataService.getGearStats(player): (number, number, number)
+	local p = profiles[player]
+	local health, accuracy, power = 0, 0, 0
+	if p and p.gear then
+		for _, gearId in p.gear do
+			local item = GearData[gearId]
+			if item then
+				health += item.health
+				accuracy += item.accuracy
+				power += item.power
+			end
+		end
+	end
+	return health, accuracy, power
+end
+
+-- Award a drop. Auto-equips if the slot is empty or the new piece is a higher tier.
+function PlayerDataService.awardGear(player, gearId: string)
+	local p = profiles[player]
+	local item = GearData[gearId]
+	if not p or not item then
+		return
+	end
+	p.gear = p.gear or {}
+	p.inventory = p.inventory or {}
+	local equipped = GearData[p.gear[item.slot] or ""]
+	if not equipped or item.tier > equipped.tier then
+		if equipped then
+			table.insert(p.inventory, equipped.id)
+		end
+		p.gear[item.slot] = gearId
+		PlayerDataService.notify(
+			player,
+			("LOOT: %s equipped! (+%dHP +%d%%acc +%d%%pow)"):format(
+				item.name,
+				item.health,
+				item.accuracy,
+				math.floor(item.power * 100)
+			)
+		)
+	else
+		table.insert(p.inventory, gearId)
+		PlayerDataService.notify(player, ("LOOT: %s (stashed — you have better)"):format(item.name))
+	end
 end
 
 -- Battle deck: your school's spells at or below your level, cheap cards first.

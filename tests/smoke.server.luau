@@ -66,6 +66,22 @@ for _ = 1, 40 do
 end
 check("battle ends when dummy dies", battle.active == false and dummy.health == 0)
 
+-- 4. Gear system: data integrity + accuracy bonus wiring
+local GearData = require(ReplicatedStorage.Shared.GearData)
+local EnemyData = require(ReplicatedStorage.Shared.EnemyData)
+check("gear data has glitch crown", GearData.glitch_crown ~= nil and GearData.glitch_crown.slot == "visor")
+local dropsValid = true
+for _, enemy in EnemyData do
+	for _, drop in enemy.drops or {} do
+		if not GearData[drop.gear] then
+			dropsValid = false
+		end
+	end
+end
+check("all enemy drops reference real gear", dropsValid)
+local geared = CombatService.newCombatant(nil, "Geared", 100, { "ember_jab" }, 0, 10)
+check("accuracy bonus stored on combatant", geared.accuracyBonus == 10)
+
 if failures == 0 then
 	print("SMOKE_RESULT: ALL PASS")
 else
