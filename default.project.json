@@ -32,6 +32,32 @@
     "Workspace": {
       "$className": "Workspace",
       "$ignoreUnknownInstances": true,
+      "Baseplate": {
+        "$className": "Part",
+        "$properties": {
+          "Anchored": true,
+          "Locked": true,
+          "Size": [512, 20, 512],
+          "Position": [0, -10, 0],
+          "Material": "Slate",
+          "Color": [0.08, 0.08, 0.12],
+          "TopSurface": "Smooth",
+          "BottomSurface": "Smooth"
+        }
+      },
+      "SpawnLocation": {
+        "$className": "SpawnLocation",
+        "$properties": {
+          "Anchored": true,
+          "Size": [12, 1, 12],
+          "Position": [0, 0.5, 10],
+          "Material": "Neon",
+          "Color": [0.9, 0.3, 1.0],
+          "Duration": 0,
+          "TopSurface": "Smooth",
+          "BottomSurface": "Smooth"
+        }
+      },
       "DuelPad": {
         "$className": "Part",
         "$properties": {
