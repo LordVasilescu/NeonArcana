@@ -9,11 +9,13 @@ local BattleRunner = require(ServerScriptService.Server.BattleRunner) :: any
 local ZoneService = require(ServerScriptService.Server.ZoneService) :: any
 local HubService = require(ServerScriptService.Server.HubService) :: any
 local EnemySpawner = require(ServerScriptService.Server.EnemySpawner) :: any
+local ChestService = require(ServerScriptService.Server.ChestService) :: any
 
 PlayerDataService.init()
 BattleRunner.init()
 HubService.build()
 ZoneService.build()
 EnemySpawner.init()
+ChestService.init()
 
 print("[NeonArcana] Server booted: Neon Plaza + 3 districts live. Pick a school, choom.")
