@@ -1,0 +1,15 @@
+# Rojo / Roblox build artifacts
+*.rbxl
+*.rbxlx
+*.rbxl.lock
+*.rbxlx.lock
+sourcemap.json
+
+# Selene generated std
+roblox.toml
+roblox.yml
+
+# Tripo/Blender working files (keep exports out of git; they're big binaries)
+assets/raw/
+assets/export/*.fbx
+*.blend1
