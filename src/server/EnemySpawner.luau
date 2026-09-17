@@ -10,6 +10,7 @@ local ZoneData = require(ReplicatedStorage.Shared.ZoneData)
 local EnemyData = require(ReplicatedStorage.Shared.EnemyData)
 local SchoolColors = require(ReplicatedStorage.Shared.SchoolColors)
 local BattleRunner = require(script.Parent.BattleRunner)
+local MeshVisuals = require(script.Parent.MeshVisuals)
 
 local PAD_COOLDOWN = 5
 
@@ -64,6 +65,17 @@ local function makePad(enemyId: string, position: Vector3, parent: Instance)
 
 	pad.Parent = parent
 	hookPad(pad, enemyId)
+
+	-- real Tripo model standing on the pad once uploaded; pad glow stays as the tell
+	local fit = enemy.boss and Vector3.new(11, 13, 11) or Vector3.new(6, 7.5, 6)
+	task.spawn(function()
+		MeshVisuals.place(
+			enemyId,
+			CFrame.lookAt(pad.Position + Vector3.new(0, 0.5, 0), Vector3.new(0, pad.Position.Y, 0)),
+			fit,
+			parent
+		)
+	end)
 end
 
 function EnemySpawner.init()

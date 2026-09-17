@@ -7,6 +7,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 
 local SchoolColors = require(ReplicatedStorage.Shared.SchoolColors)
+local MeshVisuals = require(script.Parent.MeshVisuals)
 
 local HubService = {}
 
@@ -49,6 +50,20 @@ local function billboard(parent: BasePart, text: string, color: Color3?, width: 
 end
 
 local function buildFountain(folder: Folder)
+	-- Tripo fountain replaces the procedural one once uploaded
+	if MeshVisuals.available("commons_fountain") then
+		local mesh = MeshVisuals.place("commons_fountain", CFrame.new(0, 1.25, 0), Vector3.new(18, 20, 18), folder)
+		if mesh then
+			mesh.CanCollide = true
+			local light = Instance.new("PointLight")
+			light.Range = 40
+			light.Brightness = 2
+			light.Color = Color3.fromRGB(60, 255, 210)
+			light.Parent = mesh
+			billboard(mesh, "NEON PLAZA", Color3.fromRGB(60, 255, 210), 20, 12)
+			return
+		end
+	end
 	cylinder(
 		18,
 		1.6,
@@ -161,8 +176,45 @@ local function buildShops(folder: Folder)
 	end
 end
 
+-- Tripo set dressing: trees, benches, stalls, billboards. No-ops until uploads exist.
+local function buildSetDressing(folder: Folder)
+	for _, angle in { 68, 158, 248, 338 } do
+		local rad = math.rad(angle)
+		local pos = Vector3.new(math.cos(rad) * 22, 1.25, math.sin(rad) * 22)
+		MeshVisuals.place("cyber_tree", CFrame.new(pos), Vector3.new(7, 12, 7), folder)
+	end
+	for _, angle in { 20, 110, 200, 290 } do
+		local rad = math.rad(angle)
+		local pos = Vector3.new(math.cos(rad) * 16, 1.25, math.sin(rad) * 16)
+		MeshVisuals.place("plaza_bench", CFrame.lookAt(pos, Vector3.new(0, 1.25, 0)), Vector3.new(6, 3, 3), folder)
+	end
+	MeshVisuals.place(
+		"food_stall",
+		CFrame.lookAt(Vector3.new(-20, 1.25, 24), Vector3.new(0, 1.25, 0)),
+		Vector3.new(10, 9, 8),
+		folder
+	)
+	for _, angle in { 225, 350 } do
+		local rad = math.rad(angle)
+		local pos = Vector3.new(math.cos(rad) * 35, 1.25, math.sin(rad) * 35)
+		MeshVisuals.place("holo_billboard", CFrame.lookAt(pos, Vector3.new(0, 1.25, 0)), Vector3.new(8, 14, 4), folder)
+	end
+	-- crown statue guards the Crown Exchange
+	local exchangeAngle = math.rad(315)
+	local statuePos = Vector3.new(math.cos(exchangeAngle) * 26, 1.25, math.sin(exchangeAngle) * 26)
+	MeshVisuals.place("crown_statue", CFrame.lookAt(statuePos, Vector3.new(0, 1.25, 0)), Vector3.new(5, 8, 5), folder)
+end
+
 local function buildQuestGiver(folder: Folder)
-	-- Chief Codewright: our Ambrose. Placeholder capsule until a Tripo model lands.
+	-- Chief Codewright: our Ambrose. Tripo model once uploaded, capsule until then.
+	local npcCFrame = CFrame.lookAt(Vector3.new(9, 1.25, 4), Vector3.new(0, 1.25, 10))
+	if MeshVisuals.available("chief_codewright") then
+		local mesh = MeshVisuals.place("chief_codewright", npcCFrame, Vector3.new(3, 6.5, 3), folder)
+		if mesh then
+			billboard(mesh, "CHIEF CODEWRIGHT\nQuests up top, choom", Color3.fromRGB(255, 220, 80), 16, 5)
+			return
+		end
+	end
 	local body = part({
 		Name = "ChiefCodewright",
 		Size = Vector3.new(2.4, 5.2, 2.4),
@@ -201,6 +253,7 @@ function HubService.build()
 	buildSchoolPylons(folder)
 	buildShops(folder)
 	buildQuestGiver(folder)
+	buildSetDressing(folder)
 
 	folder.Parent = Workspace
 end
