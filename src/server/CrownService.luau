@@ -9,8 +9,20 @@ local MarketplaceService = game:GetService("MarketplaceService")
 local DataStoreService = game:GetService("DataStoreService")
 local Players = game:GetService("Players")
 
-local crownStore = DataStoreService:GetDataStore("Crowns_v1")
-local receiptStore = DataStoreService:GetDataStore("Receipts_v1")
+-- pcall: DataStores are unavailable in unpublished/offline Studio sessions.
+-- Balances then live in memory only, which is exactly what you want for testing.
+local function tryGetStore(name: string): DataStore?
+	local ok, store = pcall(function()
+		return DataStoreService:GetDataStore(name)
+	end)
+	return if ok then store else nil
+end
+
+local crownStore = tryGetStore("Crowns_v1")
+local receiptStore = tryGetStore("Receipts_v1")
+if not crownStore then
+	warn("[CrownService] DataStores unavailable (offline Studio?) — using in-memory balances")
+end
 
 -- Fill these in after creating Dev Products in the Creator Dashboard
 local CROWN_PRODUCTS: { [number]: number } = {
@@ -28,18 +40,27 @@ local function loadBalance(userId: number): number
 	if balanceCache[userId] then
 		return balanceCache[userId]
 	end
-	local ok, value = pcall(function()
-		return crownStore:GetAsync(tostring(userId))
-	end)
-	balanceCache[userId] = if ok and typeof(value) == "number" then value else 0
+	local value = nil
+	if crownStore then
+		local loaded, result = pcall(function()
+			return crownStore:GetAsync(tostring(userId))
+		end)
+		if loaded then
+			value = result
+		end
+	end
+	balanceCache[userId] = if typeof(value) == "number" then value else 0
 	return balanceCache[userId]
 end
 
 local function saveBalance(userId: number): boolean
-	local ok = pcall(function()
+	if not crownStore then
+		return true -- in-memory mode: the cache IS the store
+	end
+	local saved = pcall(function()
 		crownStore:SetAsync(tostring(userId), balanceCache[userId] or 0)
 	end)
-	return ok
+	return saved
 end
 
 function CrownService.getBalance(player: Player): number
@@ -69,15 +90,17 @@ MarketplaceService.ProcessReceipt = function(receiptInfo)
 
 	-- Idempotency: bail if we've already granted this receipt
 	local receiptKey = receiptInfo.PurchaseId
-	local alreadyGranted = false
-	local ok = pcall(function()
-		alreadyGranted = receiptStore:GetAsync(receiptKey) == true
-	end)
-	if not ok then
-		return Enum.ProductPurchaseDecision.NotProcessedYet
-	end
-	if alreadyGranted then
-		return Enum.ProductPurchaseDecision.PurchaseGranted
+	if receiptStore then
+		local alreadyGranted = false
+		local checked = pcall(function()
+			alreadyGranted = receiptStore:GetAsync(receiptKey) == true
+		end)
+		if not checked then
+			return Enum.ProductPurchaseDecision.NotProcessedYet
+		end
+		if alreadyGranted then
+			return Enum.ProductPurchaseDecision.PurchaseGranted
+		end
 	end
 
 	local userId = receiptInfo.PlayerId
@@ -88,9 +111,11 @@ MarketplaceService.ProcessReceipt = function(receiptInfo)
 		return Enum.ProductPurchaseDecision.NotProcessedYet -- Roblox retries later
 	end
 
-	pcall(function()
-		receiptStore:SetAsync(receiptKey, true)
-	end)
+	if receiptStore then
+		pcall(function()
+			receiptStore:SetAsync(receiptKey, true)
+		end)
+	end
 	return Enum.ProductPurchaseDecision.PurchaseGranted
 end
 
