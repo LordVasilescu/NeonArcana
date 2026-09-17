@@ -7,10 +7,12 @@ require(ServerScriptService.Server.CrownService) -- load-bearing: registers Mark
 local PlayerDataService = require(ServerScriptService.Server.PlayerDataService) :: any
 local BattleRunner = require(ServerScriptService.Server.BattleRunner) :: any
 local ZoneService = require(ServerScriptService.Server.ZoneService) :: any
+local HubService = require(ServerScriptService.Server.HubService) :: any
 local EnemySpawner = require(ServerScriptService.Server.EnemySpawner) :: any
 
 PlayerDataService.init()
 BattleRunner.init()
+HubService.build()
 ZoneService.build()
 EnemySpawner.init()
 
