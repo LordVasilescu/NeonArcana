@@ -48,12 +48,27 @@ local list: { Zone } = {
 		id = "chrome_strip",
 		name = "Chrome Strip",
 		levelText = "Lv 8-12",
-		crownCost = 750,
+		crownCost = 0, -- was premium; Wizard City stays free, choom
 		dir = Vector3.new(0, 0, -1),
 		pads = {
 			{ enemy = "sentinel_unit", at = 0.25 },
 			{ enemy = "sentinel_unit", at = 0.5 },
 			{ enemy = "glitch_king", at = 0.9 },
+		},
+	},
+	-- The Colossus Boulevard move: one late premium street once you're hooked.
+	{
+		id = "mainframe_blvd",
+		name = "Mainframe Boulevard",
+		levelText = "Lv 12-18",
+		crownCost = 750,
+		dir = Vector3.new(0, 0, 1),
+		pads = {
+			{ enemy = "proxy_knight", at = 0.2 },
+			{ enemy = "proxy_knight", at = 0.4 },
+			{ enemy = "grid_stalker", at = 0.6 },
+			{ enemy = "grid_stalker", at = 0.78 },
+			{ enemy = "overseer_prime", at = 0.95 },
 		},
 	},
 }

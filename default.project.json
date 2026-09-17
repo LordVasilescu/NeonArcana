@@ -33,6 +33,18 @@
         }
       }
     },
+    "Lighting": {
+      "$className": "Lighting",
+      "$properties": {
+        "ClockTime": 0,
+        "Brightness": 1.2,
+        "Ambient": [0.1, 0.1, 0.16],
+        "OutdoorAmbient": [0.16, 0.13, 0.22],
+        "FogColor": [0.06, 0.04, 0.12],
+        "FogEnd": 700,
+        "GlobalShadows": true
+      }
+    },
     "Workspace": {
       "$className": "Workspace",
       "$ignoreUnknownInstances": true,

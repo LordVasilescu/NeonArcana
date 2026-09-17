@@ -40,6 +40,89 @@ local function addSign(parent: Part, text: string)
 	gui.Parent = parent
 end
 
+local ACCENTS = {
+	Color3.fromRGB(40, 255, 200),
+	Color3.fromRGB(255, 60, 120),
+	Color3.fromRGB(200, 80, 255),
+	Color3.fromRGB(255, 220, 80),
+	Color3.fromRGB(80, 180, 255),
+}
+
+-- Skyline: dark towers with a neon crown strip, lining both sides of a street.
+local function buildSkyline(folder: Folder, dir: Vector3, isXAxis: boolean)
+	local right = Vector3.new(-dir.Z, 0, dir.X)
+	for i = 1, 8 do
+		for side = -1, 1, 2 do
+			local along = ZoneData.ROAD_START + (i - 0.5) * (ZoneData.ROAD_LENGTH / 8)
+			local lateral = (ZoneData.ROAD_WIDTH / 2 + 14 + math.random(0, 10)) * side
+			local height = math.random(25, 85)
+			local width = math.random(10, 18)
+			local base = dir * along + right * lateral
+
+			local tower = part({
+				Name = "Tower",
+				Size = Vector3.new(width, height, width),
+				Position = base + Vector3.new(0, height / 2, 0),
+				Material = Enum.Material.Metal,
+				Color = Color3.fromRGB(18 + math.random(0, 10), 18 + math.random(0, 10), 30 + math.random(0, 12)),
+			})
+			tower.Parent = folder
+
+			local accent = ACCENTS[math.random(#ACCENTS)]
+			local crown = part({
+				Name = "TowerCrown",
+				Size = Vector3.new(width + 0.5, 1.2, width + 0.5),
+				Position = base + Vector3.new(0, height + 0.6, 0),
+				Material = Enum.Material.Neon,
+				Color = accent,
+			})
+			crown.Parent = folder
+
+			-- window strip
+			local strip = part({
+				Name = "WindowStrip",
+				Size = Vector3.new(isXAxis and width + 0.4 or 0.4, height * 0.7, isXAxis and 0.4 or width + 0.4),
+				Position = base + Vector3.new(0, height * 0.45, 0) - right * (side * (width / 2 + 0.3)),
+				Material = Enum.Material.Neon,
+				Color = accent,
+				Transparency = 0.35,
+			})
+			strip.Parent = folder
+		end
+	end
+end
+
+local function buildLamps(folder: Folder, dir: Vector3)
+	local right = Vector3.new(-dir.Z, 0, dir.X)
+	for i = 1, 4 do
+		for side = -1, 1, 2 do
+			local along = ZoneData.ROAD_START + (i - 0.5) * (ZoneData.ROAD_LENGTH / 4)
+			local base = dir * along + right * ((ZoneData.ROAD_WIDTH / 2 + 3) * side)
+			local pole = part({
+				Name = "LampPole",
+				Size = Vector3.new(0.6, 12, 0.6),
+				Position = base + Vector3.new(0, 6, 0),
+				Material = Enum.Material.Metal,
+				Color = Color3.fromRGB(40, 40, 55),
+			})
+			pole.Parent = folder
+			local bulb = part({
+				Name = "LampBulb",
+				Size = Vector3.new(1.6, 1.6, 1.6),
+				Position = base + Vector3.new(0, 12.5, 0),
+				Material = Enum.Material.Neon,
+				Color = Color3.fromRGB(180, 240, 255),
+			})
+			local light = Instance.new("PointLight")
+			light.Range = 24
+			light.Brightness = 1.5
+			light.Color = Color3.fromRGB(160, 220, 255)
+			light.Parent = bulb
+			bulb.Parent = folder
+		end
+	end
+end
+
 local function buildGate(zone, folder: Folder, entrance: Vector3, dir: Vector3)
 	local right = Vector3.new(-dir.Z, 0, dir.X)
 	local gate = part({
@@ -116,6 +199,9 @@ function ZoneService.build()
 			})
 			curb.Parent = folder
 		end
+
+		buildSkyline(folder, dir, isXAxis)
+		buildLamps(folder, dir)
 
 		if zone.crownCost > 0 then
 			buildGate(zone, folder, entrance, dir)

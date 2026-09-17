@@ -73,6 +73,21 @@ statusLabel.TextScaled = true
 statusLabel.Font = Enum.Font.Code
 statusLabel.Parent = gui
 
+local logLabel = Instance.new("TextLabel")
+logLabel.Size = UDim2.fromScale(0.44, 0.16)
+logLabel.Position = UDim2.fromScale(0.5, 0.1)
+logLabel.AnchorPoint = Vector2.new(0.5, 0)
+logLabel.BackgroundColor3 = Color3.fromRGB(10, 10, 18)
+logLabel.BackgroundTransparency = 0.35
+logLabel.BorderSizePixel = 0
+logLabel.TextColor3 = Color3.new(1, 1, 1)
+logLabel.TextSize = 16
+logLabel.Font = Enum.Font.Code
+logLabel.TextWrapped = true
+logLabel.TextYAlignment = Enum.TextYAlignment.Top
+logLabel.Visible = false
+logLabel.Parent = gui
+
 local hand = Instance.new("Frame")
 hand.Size = UDim2.fromScale(0.9, 0.22)
 hand.Position = UDim2.fromScale(0.5, 0.97)
@@ -165,6 +180,14 @@ battleState.OnClientEvent:Connect(function(payload)
 	else
 		statusLabel.Text = "Resolving..."
 		clearHand()
+		local events = payload.state.events
+		if events and #events > 0 then
+			logLabel.Text = table.concat(events, "\n")
+			logLabel.Visible = true
+			task.delay(3, function()
+				logLabel.Visible = false
+			end)
+		end
 	end
 end)
 

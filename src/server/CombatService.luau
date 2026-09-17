@@ -17,6 +17,7 @@ export type Combatant = {
 	maxHealth: number,
 	health: number,
 	cycles: number, -- pips
+	powerChance: number, -- chance a round's cycle gain is worth 2 (power pips)
 	blades: { { school: string, amount: number } },
 	traps: { { amount: number } },
 	shields: { { amount: number } },
@@ -30,15 +31,23 @@ export type Battle = {
 	combatants: { Combatant },
 	round: number,
 	active: boolean,
+	lastEvents: { string },
 }
 
-function CombatService.newCombatant(player: Player?, name: string, health: number, deck: { string }): Combatant
+function CombatService.newCombatant(
+	player: Player?,
+	name: string,
+	health: number,
+	deck: { string },
+	powerChance: number?
+): Combatant
 	return {
 		player = player,
 		name = name,
 		maxHealth = health,
 		health = health,
 		cycles = 0,
+		powerChance = powerChance or 0,
 		blades = {},
 		traps = {},
 		shields = {},
@@ -73,21 +82,27 @@ function CombatService.requestCast(battle: Battle, casterIndex: number, spellId:
 	return true
 end
 
-local function applySpell(_battle: Battle, caster: Combatant, spell: SpellData.Spell, target: Combatant)
+local function applySpell(battle: Battle, caster: Combatant, spell: SpellData.Spell, target: Combatant)
 	-- Fizzle check (the W101 accuracy gamble)
 	if rng:NextNumber(0, 100) > spell.accuracy then
-		return { fizzled = true }
+		table.insert(battle.lastEvents, ("%s cast %s — FIZZLED!"):format(caster.name, spell.name))
+		return
 	end
 
+	local totalDamage, totalHeal, buffed = 0, 0, false
 	for _, effect in spell.effects do
 		if effect.kind == "Blade" then
 			table.insert(caster.blades, { school = spell.school, amount = effect.amount })
+			buffed = true
 		elseif effect.kind == "Trap" then
 			table.insert(target.traps, { amount = effect.amount })
+			buffed = true
 		elseif effect.kind == "Shield" then
 			table.insert(caster.shields, { amount = effect.amount })
+			buffed = true
 		elseif effect.kind == "Heal" then
 			caster.health = math.min(caster.maxHealth, caster.health + effect.amount)
+			totalHeal += effect.amount
 		elseif effect.kind == "Damage" or effect.kind == "DoT" then
 			local dmg = effect.amount
 			-- consume blades matching school (multiplicative stacking = the depth)
@@ -110,22 +125,46 @@ local function applySpell(_battle: Battle, caster: Combatant, spell: SpellData.S
 			dmg = math.floor(dmg)
 			if effect.kind == "DoT" then
 				table.insert(target.dots, { amount = dmg, ticksLeft = effect.ticks or 3 })
+				table.insert(
+					battle.lastEvents,
+					("%s cast %s — %d burn x%d rounds on %s"):format(
+						caster.name,
+						spell.name,
+						dmg,
+						effect.ticks or 3,
+						target.name
+					)
+				)
 			else
 				target.health = math.max(0, target.health - dmg)
+				totalDamage += dmg
 			end
 		end
 	end
-	return { fizzled = false }
+	if totalDamage > 0 then
+		table.insert(
+			battle.lastEvents,
+			("%s cast %s — %d damage to %s"):format(caster.name, spell.name, totalDamage, target.name)
+		)
+	end
+	if totalHeal > 0 then
+		table.insert(battle.lastEvents, ("%s cast %s — healed %d"):format(caster.name, spell.name, totalHeal))
+	end
+	if buffed and totalDamage == 0 and totalHeal == 0 then
+		table.insert(battle.lastEvents, ("%s cast %s"):format(caster.name, spell.name))
+	end
 end
 
 -- Call once per round after all picks are in (or SELECT_TIME expires).
 function CombatService.resolveRound(battle: Battle)
 	battle.round += 1
+	battle.lastEvents = {}
 
 	-- DoT ticks first
 	for _, c in battle.combatants do
 		for i = #c.dots, 1, -1 do
 			c.health = math.max(0, c.health - c.dots[i].amount)
+			table.insert(battle.lastEvents, ("%s burns for %d"):format(c.name, c.dots[i].amount))
 			c.dots[i].ticksLeft -= 1
 			if c.dots[i].ticksLeft <= 0 then
 				table.remove(c.dots, i)
@@ -147,10 +186,15 @@ function CombatService.resolveRound(battle: Battle)
 		caster.pendingTarget = nil
 	end
 
-	-- Gain a cycle (power cycle chance later, scaling with level)
+	-- Gain a cycle; powerChance rolls a double (W101 power pips)
 	for _, c in battle.combatants do
 		if c.health > 0 then
-			c.cycles += 1
+			if c.powerChance > 0 and rng:NextNumber() < c.powerChance then
+				c.cycles += 2
+				table.insert(battle.lastEvents, ("%s gains a POWER CYCLE"):format(c.name))
+			else
+				c.cycles += 1
+			end
 		end
 	end
 
@@ -167,7 +211,7 @@ function CombatService.resolveRound(battle: Battle)
 end
 
 function CombatService.newBattle(combatants: { Combatant }): Battle
-	local battle: Battle = { combatants = combatants, round = 0, active = true }
+	local battle: Battle = { combatants = combatants, round = 0, active = true, lastEvents = {} }
 	for _, c in combatants do
 		c.cycles = 1 -- everyone starts with one cycle
 	end

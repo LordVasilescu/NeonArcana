@@ -45,6 +45,23 @@ local list: { Quest } = {
 		credits = 300,
 	},
 	{ id = "cs2", title = "Flatline THE GLITCH KING", enemy = "glitch_king", count = 1, xp = 1500, credits = 1000 },
+	{
+		id = "mb1",
+		title = "Defeat Proxy Knights on Mainframe Blvd",
+		enemy = "proxy_knight",
+		count = 3,
+		xp = 900,
+		credits = 400,
+	},
+	{
+		id = "mb2",
+		title = "Defeat Grid Stalkers on Mainframe Blvd",
+		enemy = "grid_stalker",
+		count = 3,
+		xp = 1200,
+		credits = 550,
+	},
+	{ id = "mb3", title = "Flatline OVERSEER PRIME", enemy = "overseer_prime", count = 1, xp = 3000, credits = 2000 },
 }
 
 return { list = list }

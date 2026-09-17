@@ -38,7 +38,7 @@ local function snapshot(battle)
 			dots = #c.dots,
 		})
 	end
-	return { round = battle.round, active = battle.active, combatants = combatants }
+	return { round = battle.round, active = battle.active, combatants = combatants, events = battle.lastEvents }
 end
 
 local function npcPick(battle, npcIndex, targetIndex)
@@ -71,9 +71,11 @@ function BattleRunner.startBattle(player: Player, enemyId: string)
 	local profile = PlayerDataService.get(player)
 	local level = (profile and profile.level) or 1
 	local heroHP = BASE_HP + HP_PER_LEVEL * (level - 1)
+	local heroPower = math.min(0.05 + 0.025 * (level - 1), 0.5) -- power pip chance grows with level
+	local foePower = enemyDef.boss and 0.25 or 0.1
 
-	local hero = CombatService.newCombatant(player, player.Name, heroHP, PlayerDataService.getDeck(player))
-	local foe = CombatService.newCombatant(nil, enemyDef.name, enemyDef.health, table.clone(enemyDef.deck))
+	local hero = CombatService.newCombatant(player, player.Name, heroHP, PlayerDataService.getDeck(player), heroPower)
+	local foe = CombatService.newCombatant(nil, enemyDef.name, enemyDef.health, table.clone(enemyDef.deck), foePower)
 	local battle = CombatService.newBattle({ hero, foe })
 	inBattle[player] = battle
 
@@ -107,6 +109,14 @@ function BattleRunner.startBattle(player: Player, enemyId: string)
 		end
 		if player.Parent then
 			battleEnd:FireClient(player, { won = won, xp = xpGain, credits = creditGain })
+			if not won then
+				-- W101 rules: you got flatlined, wake up back at the Plaza
+				local character = player.Character
+				local root = character and character:FindFirstChild("HumanoidRootPart")
+				if root then
+					root.CFrame = CFrame.new(0, 5, 10)
+				end
+			end
 		end
 		inBattle[player] = nil
 	end)
