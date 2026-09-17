@@ -6,6 +6,12 @@
       "$className": "ReplicatedStorage",
       "Shared": {
         "$path": "src/shared"
+      },
+      "Remotes": {
+        "$className": "Folder",
+        "CastRequest": { "$className": "RemoteEvent" },
+        "BattleState": { "$className": "RemoteEvent" },
+        "BattleEnd": { "$className": "RemoteEvent" }
       }
     },
     "ServerScriptService": {
@@ -20,6 +26,22 @@
         "$className": "StarterPlayerScripts",
         "Client": {
           "$path": "src/client"
+        }
+      }
+    },
+    "Workspace": {
+      "$className": "Workspace",
+      "$ignoreUnknownInstances": true,
+      "DuelPad": {
+        "$className": "Part",
+        "$properties": {
+          "Anchored": true,
+          "Size": [10, 1, 10],
+          "Position": [0, 0.5, -30],
+          "Material": "Neon",
+          "Color": [0.2, 1.0, 0.85],
+          "TopSurface": "Smooth",
+          "BottomSurface": "Smooth"
         }
       }
     }
