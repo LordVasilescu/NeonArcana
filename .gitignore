@@ -15,3 +15,6 @@ assets/export/*.fbx
 *.blend1
 
 build/
+
+.env
+assets/images/

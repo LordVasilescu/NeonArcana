@@ -169,7 +169,9 @@ battleState.OnClientEvent:Connect(function(payload)
 end)
 
 battleEnd.OnClientEvent:Connect(function(payload)
-	statusLabel.Text = payload.won and "FLATLINED THEM. You win!" or "You got flatlined..."
+	statusLabel.Text = payload.won
+			and ("FLATLINED THEM! +%d XP, +%d credits"):format(payload.xp or 0, payload.credits or 0)
+		or "You got flatlined..."
 	clearHand()
 	task.delay(3, function()
 		gui.Enabled = false

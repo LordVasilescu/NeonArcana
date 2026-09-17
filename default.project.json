@@ -11,7 +11,11 @@
         "$className": "Folder",
         "CastRequest": { "$className": "RemoteEvent" },
         "BattleState": { "$className": "RemoteEvent" },
-        "BattleEnd": { "$className": "RemoteEvent" }
+        "BattleEnd": { "$className": "RemoteEvent" },
+        "HUDUpdate": { "$className": "RemoteEvent" },
+        "Notify": { "$className": "RemoteEvent" },
+        "UnlockZone": { "$className": "RemoteEvent" },
+        "SelectSchool": { "$className": "RemoteEvent" }
       }
     },
     "ServerScriptService": {

@@ -1,0 +1,224 @@
+--!nonstrict
+-- PlayerDataService: profiles (level/xp/credits/school/quests/zones), DataStore-backed
+-- with in-memory fallback for offline Studio. Also handles quest progression and the
+-- SelectSchool / UnlockZone remotes.
+
+local Players = game:GetService("Players")
+local DataStoreService = game:GetService("DataStoreService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+
+local SpellData = require(ReplicatedStorage.Shared.SpellData)
+local QuestData = require(ReplicatedStorage.Shared.QuestData)
+local ZoneData = require(ReplicatedStorage.Shared.ZoneData)
+local CrownService = require(script.Parent.CrownService)
+
+local remotes = ReplicatedStorage:WaitForChild("Remotes")
+local hudUpdate = remotes:WaitForChild("HUDUpdate")
+local notify = remotes:WaitForChild("Notify")
+local selectSchool = remotes:WaitForChild("SelectSchool")
+local unlockZone = remotes:WaitForChild("UnlockZone")
+
+local SCHOOLS = { "Burnout", "Coolant", "Surge", "Patch", "Leech", "Ghost", "Kernel" }
+local STUDIO_STARTER_CROWNS = 2500 -- test wallet so the crown gate is exercisable offline
+
+local ok, store = pcall(function()
+	return DataStoreService:GetDataStore("PlayerData_v1")
+end)
+if not ok then
+	store = nil
+	warn("[PlayerData] DataStores unavailable (offline Studio?) — profiles are in-memory")
+end
+
+local PlayerDataService = {}
+local profiles = {}
+
+local function defaultProfile()
+	return {
+		school = nil,
+		level = 1,
+		xp = 0,
+		credits = 0,
+		questIndex = 1,
+		questKills = 0,
+		zones = { circuit_row = true, static_alley = true }, -- chrome_strip is premium
+	}
+end
+
+local function xpNeeded(level: number): number
+	return math.floor(100 * level ^ 1.5)
+end
+
+function PlayerDataService.get(player)
+	return profiles[player]
+end
+
+function PlayerDataService.pushHUD(player)
+	local p = profiles[player]
+	if not p then
+		return
+	end
+	local quest = QuestData.list[p.questIndex]
+	local questText = quest and ("%s (%d/%d)"):format(quest.title, p.questKills, quest.count)
+		or "All quests complete — more districts soon!"
+	hudUpdate:FireClient(player, {
+		level = p.level,
+		xp = p.xp,
+		xpNeeded = xpNeeded(p.level),
+		credits = p.credits,
+		crowns = CrownService.getBalance(player),
+		school = p.school,
+		questText = questText,
+	})
+end
+
+function PlayerDataService.notify(player, text: string, offer)
+	notify:FireClient(player, { text = text, offer = offer })
+end
+
+function PlayerDataService.addXP(player, amount: number)
+	local p = profiles[player]
+	if not p then
+		return
+	end
+	p.xp += amount
+	while p.xp >= xpNeeded(p.level) do
+		p.xp -= xpNeeded(p.level)
+		p.level += 1
+		PlayerDataService.notify(player, ("LEVEL UP! You are now level %d"):format(p.level))
+	end
+end
+
+function PlayerDataService.addCredits(player, amount: number)
+	local p = profiles[player]
+	if p then
+		p.credits += amount
+	end
+end
+
+-- Called by BattleRunner on every win. Advances the quest chain.
+function PlayerDataService.recordKill(player, enemyId: string)
+	local p = profiles[player]
+	if not p then
+		return
+	end
+	local quest = QuestData.list[p.questIndex]
+	if quest and quest.enemy == enemyId then
+		p.questKills += 1
+		if p.questKills >= quest.count then
+			p.questIndex += 1
+			p.questKills = 0
+			PlayerDataService.addXP(player, quest.xp)
+			p.credits += quest.credits
+			PlayerDataService.notify(player, ("QUEST COMPLETE! +%d XP, +%d credits"):format(quest.xp, quest.credits))
+		end
+	end
+	PlayerDataService.pushHUD(player)
+end
+
+function PlayerDataService.isZoneUnlocked(player, zoneId: string): boolean
+	local p = profiles[player]
+	return p ~= nil and p.zones[zoneId] == true
+end
+
+-- Battle deck: your school's spells at or below your level, cheap cards first.
+function PlayerDataService.getDeck(player): { string }
+	local p = profiles[player]
+	local school = (p and p.school) or "Burnout"
+	local level = (p and p.level) or 1
+	local deck = {}
+	for id, spell in SpellData do
+		if spell.school == school and spell.levelReq <= level then
+			table.insert(deck, id)
+		end
+	end
+	table.sort(deck, function(a, b)
+		local sa, sb = SpellData[a], SpellData[b]
+		if sa.cost ~= sb.cost then
+			return sa.cost < sb.cost
+		end
+		return sa.name < sb.name
+	end)
+	return deck
+end
+
+local function loadProfile(player)
+	local saved = nil
+	if store then
+		local loaded, result = pcall(function()
+			return store:GetAsync(tostring(player.UserId))
+		end)
+		if loaded then
+			saved = result
+		end
+	end
+	local profile = defaultProfile()
+	if typeof(saved) == "table" then
+		for key, value in saved do
+			profile[key] = value
+		end
+	end
+	profiles[player] = profile
+end
+
+local function saveProfile(player)
+	local p = profiles[player]
+	if not p or not store then
+		return
+	end
+	pcall(function()
+		store:SetAsync(tostring(player.UserId), p)
+	end)
+end
+
+function PlayerDataService.init()
+	selectSchool.OnServerEvent:Connect(function(player, school)
+		local p = profiles[player]
+		if p and not p.school and table.find(SCHOOLS, school) then
+			p.school = school
+			PlayerDataService.notify(player, ("Welcome, %s Codeslinger. Circuit Row needs you."):format(school))
+			PlayerDataService.pushHUD(player)
+		end
+	end)
+
+	unlockZone.OnServerEvent:Connect(function(player, zoneId)
+		local zone = typeof(zoneId) == "string" and ZoneData.byId[zoneId]
+		local p = profiles[player]
+		if not zone or not p or p.zones[zoneId] or zone.crownCost <= 0 then
+			return
+		end
+		if CrownService.trySpend(player, zone.crownCost) then
+			p.zones[zoneId] = true
+			saveProfile(player)
+			PlayerDataService.notify(player, ("%s UNLOCKED! Get in there."):format(zone.name))
+		else
+			PlayerDataService.notify(player, ("Not enough Crowns (need %d)."):format(zone.crownCost))
+		end
+		PlayerDataService.pushHUD(player)
+	end)
+
+	Players.PlayerAdded:Connect(function(player)
+		loadProfile(player)
+		if RunService:IsStudio() and CrownService.getBalance(player) == 0 then
+			CrownService.grant(player.UserId, STUDIO_STARTER_CROWNS)
+		end
+		PlayerDataService.pushHUD(player)
+	end)
+
+	Players.PlayerRemoving:Connect(function(player)
+		saveProfile(player)
+		profiles[player] = nil
+	end)
+
+	-- Autosave sweep
+	task.spawn(function()
+		while true do
+			task.wait(60)
+			for player in profiles do
+				saveProfile(player)
+			end
+		end
+	end)
+end
+
+return PlayerDataService

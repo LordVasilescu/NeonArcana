@@ -1,25 +1,24 @@
 --!nonstrict
--- BattleRunner: owns the live PvE battle loop. Step on the DuelPad -> fight a Chrome Ganger.
--- Round: client gets "select" phase + timer -> picks a card -> NPC picks -> resolve -> repeat.
+-- BattleRunner: owns live PvE battles. EnemySpawner calls startBattle(player, enemyId).
+-- Round: client gets "select" phase + timer -> picks a card -> NPC picks -> resolve.
+-- On win: XP + credits + quest progress via PlayerDataService.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Workspace = game:GetService("Workspace")
 
 local CombatService = require(script.Parent.CombatService)
+local PlayerDataService = require(script.Parent.PlayerDataService)
 local SpellData = require(ReplicatedStorage.Shared.SpellData)
+local EnemyData = require(ReplicatedStorage.Shared.EnemyData)
 
 local remotes = ReplicatedStorage:WaitForChild("Remotes")
 local castRequest = remotes:WaitForChild("CastRequest")
 local battleState = remotes:WaitForChild("BattleState")
 local battleEnd = remotes:WaitForChild("BattleEnd")
 
--- MVP: everyone gets the full starter deck. Deck-building comes later.
-local PLAYER_DECK =
-	{ "spark_jab", "thermal_bleed", "overclock_blade", "frost_packet", "firewall", "hotfix", "exploit_trap" }
-local NPC_DECK = { "spark_jab", "frost_packet" }
-
-local RESOLVE_PAUSE = 1.5 -- seconds to let the client animate the round result
+local RESOLVE_PAUSE = 1.5
+local BASE_HP = 400
+local HP_PER_LEVEL = 30
 
 local BattleRunner = {}
 local inBattle: { [Player]: any } = {}
@@ -55,58 +54,69 @@ local function npcPick(battle, npcIndex, targetIndex)
 	end
 end
 
-local function runBattle(player: Player)
-	local hero = CombatService.newCombatant(player, player.Name, 500, table.clone(PLAYER_DECK))
-	local ganger = CombatService.newCombatant(nil, "Chrome Ganger", 400, table.clone(NPC_DECK))
-	local battle = CombatService.newBattle({ hero, ganger })
+function BattleRunner.isBusy(player): boolean
+	return inBattle[player] ~= nil
+end
+
+function BattleRunner.startBattle(player: Player, enemyId: string)
+	if inBattle[player] then
+		return
+	end
+	local enemyDef = EnemyData[enemyId]
+	if not enemyDef then
+		warn("[BattleRunner] unknown enemy: " .. tostring(enemyId))
+		return
+	end
+
+	local profile = PlayerDataService.get(player)
+	local level = (profile and profile.level) or 1
+	local heroHP = BASE_HP + HP_PER_LEVEL * (level - 1)
+
+	local hero = CombatService.newCombatant(player, player.Name, heroHP, PlayerDataService.getDeck(player))
+	local foe = CombatService.newCombatant(nil, enemyDef.name, enemyDef.health, table.clone(enemyDef.deck))
+	local battle = CombatService.newBattle({ hero, foe })
 	inBattle[player] = battle
 
-	while battle.active and player.Parent do
-		battleState:FireClient(player, {
-			phase = "select",
-			selectTime = CombatService.SELECT_TIME,
-			deck = hero.deck,
-			state = snapshot(battle),
-		})
+	task.spawn(function()
+		while battle.active and player.Parent do
+			battleState:FireClient(player, {
+				phase = "select",
+				selectTime = CombatService.SELECT_TIME,
+				deck = hero.deck,
+				state = snapshot(battle),
+			})
 
-		local deadline = os.clock() + CombatService.SELECT_TIME
-		while battle.active and player.Parent and os.clock() < deadline and not hero.pendingCast do
-			task.wait(0.1)
+			local deadline = os.clock() + CombatService.SELECT_TIME
+			while battle.active and player.Parent and os.clock() < deadline and not hero.pendingCast do
+				task.wait(0.1)
+			end
+
+			npcPick(battle, 2, 1)
+			CombatService.resolveRound(battle)
+			battleState:FireClient(player, { phase = "resolve", state = snapshot(battle) })
+			task.wait(RESOLVE_PAUSE)
 		end
 
-		npcPick(battle, 2, 1)
-		CombatService.resolveRound(battle)
-		battleState:FireClient(player, { phase = "resolve", state = snapshot(battle) })
-		task.wait(RESOLVE_PAUSE)
-	end
-
-	if player.Parent then
-		battleEnd:FireClient(player, { won = ganger.health <= 0 })
-	end
-	inBattle[player] = nil
+		local won = foe.health <= 0
+		local xpGain, creditGain = 0, 0
+		if won then
+			xpGain, creditGain = enemyDef.xp, enemyDef.credits
+			PlayerDataService.addXP(player, xpGain)
+			PlayerDataService.addCredits(player, creditGain)
+			PlayerDataService.recordKill(player, enemyId) -- also pushes HUD
+		end
+		if player.Parent then
+			battleEnd:FireClient(player, { won = won, xp = xpGain, credits = creditGain })
+		end
+		inBattle[player] = nil
+	end)
 end
 
 function BattleRunner.init()
 	castRequest.OnServerEvent:Connect(function(player, spellId)
 		local battle = inBattle[player]
 		if battle and typeof(spellId) == "string" then
-			-- player is always combatant 1, NPC is 2 (until group fights exist)
 			CombatService.requestCast(battle, 1, spellId, 2)
-		end
-	end)
-
-	local pad = Workspace:WaitForChild("DuelPad")
-	local cooldown: { [Player]: boolean } = {}
-	pad.Touched:Connect(function(hit)
-		local character = hit.Parent
-		local player = character and Players:GetPlayerFromCharacter(character)
-		if player and not inBattle[player] and not cooldown[player] then
-			cooldown[player] = true
-			task.spawn(function()
-				runBattle(player)
-				task.wait(3) -- step-off grace so you don't chain-trigger
-				cooldown[player] = nil
-			end)
 		end
 	end)
 

@@ -67,6 +67,12 @@ function CrownService.getBalance(player: Player): number
 	return loadBalance(player.UserId)
 end
 
+-- Server-side grant (receipts, quest rewards, Studio test wallets). NEVER expose to a remote.
+function CrownService.grant(userId: number, amount: number)
+	balanceCache[userId] = loadBalance(userId) + amount
+	saveBalance(userId)
+end
+
 -- Returns true if the spend went through. Use for zone unlocks, packs, mounts, etc.
 function CrownService.trySpend(player: Player, amount: number): boolean
 	assert(amount > 0 and amount == math.floor(amount), "invalid spend amount")

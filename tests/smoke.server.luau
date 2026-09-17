@@ -25,7 +25,7 @@ check("Shared.SpellData exists", ReplicatedStorage:FindFirstChild("Shared") ~= n
 -- 2. Combat core: deterministic battle using only 100%-accuracy cards
 local CombatService = require(ServerScriptService.Server.CombatService)
 
-local hero = CombatService.newCombatant(nil, "Hero", 500, { "overclock_blade", "spark_jab" })
+local hero = CombatService.newCombatant(nil, "Hero", 500, { "overclock", "ember_jab" })
 local dummy = CombatService.newCombatant(nil, "Dummy", 10000, { "firewall" })
 local battle = CombatService.newBattle({ hero, dummy })
 
@@ -33,36 +33,36 @@ check("battle starts active", battle.active == true)
 check("combatants start with 1 cycle", hero.cycles == 1)
 
 -- Round 1: blade up (100% accuracy, cost 0)
-check("blade cast accepted", CombatService.requestCast(battle, 1, "overclock_blade", 1))
+check("blade cast accepted", CombatService.requestCast(battle, 1, "overclock", 1))
 CombatService.resolveRound(battle)
 check("blade stored after round 1", #hero.blades == 1)
 check("cycles grew to 2", hero.cycles == 2)
 
--- Round 2+: jab until it lands (85% accuracy, so loop past fizzles)
+-- Round 2+: jab until it lands (75% accuracy, so loop past fizzles)
 local landed = false
-for _ = 1, 25 do
-	CombatService.requestCast(battle, 1, "spark_jab", 2)
+for _ = 1, 40 do
+	CombatService.requestCast(battle, 1, "ember_jab", 2)
 	CombatService.resolveRound(battle)
 	if dummy.health < 10000 then
 		landed = true
 		break
 	end
 end
-check("spark jab eventually landed", landed)
--- Blade math: first landing hit should be 80 * 1.35 = 108 (blade consumed on it)
+check("ember jab eventually landed", landed)
+-- Blade math: first landing hit should be floor(70 * 1.35) = 94 (blade consumed on it)
 local damageTaken = 10000 - dummy.health
-check("bladed hit dealt 108 (80 * 1.35)", damageTaken == 108)
+check("bladed hit dealt 94 (70 * 1.35)", damageTaken == 94)
 check("blade consumed after hit", #hero.blades == 0)
 
 -- 3. Kill check ends the battle
 dummy.health = 1
-CombatService.requestCast(battle, 1, "spark_jab", 2)
-for _ = 1, 25 do
+CombatService.requestCast(battle, 1, "ember_jab", 2)
+for _ = 1, 40 do
 	CombatService.resolveRound(battle)
 	if not battle.active then
 		break
 	end
-	CombatService.requestCast(battle, 1, "spark_jab", 2)
+	CombatService.requestCast(battle, 1, "ember_jab", 2)
 end
 check("battle ends when dummy dies", battle.active == false and dummy.health == 0)
 
