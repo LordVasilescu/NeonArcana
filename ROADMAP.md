@@ -17,7 +17,7 @@ smoke test -> commit. Add smoke checks for new systems as they land.
 - [x] Deck editor UI: DECK button, 7-slot loadout, server-validated custom decks
 - [x] Card packs: Protocol Packs 100 crowns, single-use any-school treasure cards, odds published 60/30/10
 - [x] Group combat: shared battle circles, join mid-fight, +1 enemy per joiner, 4v4 cap, catch-up cycles
-- [ ] Sound: combat cast/hit/fizzle SFX + ambient city loop (Roblox Creator Store free ids)
+- [x] Sound: full SFX layer from guaranteed rbxasset built-ins (deal/hit/burn/fizzle/heal/win/lose/ping) + ambient city wind
 - [ ] Mesh uploads: needs Roblox login in Chrome -> Open Cloud key -> tools/roblox_upload.py
 - [ ] Animations: Tripo Animate (auto-rig) on enemy models, or Roblox pre-built emotes
 - [ ] Grok images: game icon + thumbnails - needs XAI_API_KEY in .env

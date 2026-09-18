@@ -91,6 +91,10 @@ local BattleRunner = require(ServerScriptService.Server.BattleRunner)
 check("BattleRunner.requestJoin exists", typeof(BattleRunner.requestJoin) == "function")
 check("BattleRunner.startBattle shim exists", typeof(BattleRunner.startBattle) == "function")
 
+-- 7. Sound layer ships with the client
+local starterScripts = game:GetService("StarterPlayer").StarterPlayerScripts
+check("SoundFX client script exists", starterScripts.Client:FindFirstChild("SoundFX") ~= nil)
+
 if failures == 0 then
 	print("SMOKE_RESULT: ALL PASS")
 else
