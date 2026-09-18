@@ -177,13 +177,14 @@ local function refreshTargets(livingEnemies)
 	end
 end
 
-local function updateBars(state)
+local function updateBars(state, isPvP)
 	local allies = {}
 	local enemyName, enemyTags = "Enemy", ""
 	local enemyHealth, enemyMax, enemyAlive = 0, 0, 0
 	local livingEnemies = {}
 	for _, c in state.combatants do
-		if c.isPlayer then
+		-- in PvP the "enemy side" is the other player
+		if c.isPlayer and not (isPvP and c.name ~= player.Name) then
 			if c.name == player.Name then
 				playerBar.Fill.Size = UDim2.fromScale(math.max(0, c.health / c.maxHealth), 1)
 				playerBar.Label.Text = ("%s  %d/%d  %s"):format(c.name, c.health, c.maxHealth, buffTags(c))
@@ -256,7 +257,7 @@ end
 -- ---------- server events ----------
 battleState.OnClientEvent:Connect(function(payload)
 	gui.Enabled = true
-	updateBars(payload.state)
+	updateBars(payload.state, payload.pvp)
 	if payload.phase == "select" then
 		statusLabel.Text = ("ROUND %d — pick a card! (%d cycles)"):format(payload.state.round + 1, myCycles)
 		showHand(payload.deck)

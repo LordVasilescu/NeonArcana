@@ -35,7 +35,7 @@ smoke test -> commit. Add smoke checks for new systems as they land.
 - [ ] Mounts (hoverboards): +40% speed, crown shop - models already exported
 - [ ] Pet drones: cosmetic followers, gacha eggs - drone_pet.fbx ready
 - [ ] District 5: "The Undergrid" (Lv 18-25), premium 1250 crowns
-- [ ] PvP arena with ranked seasons
+- [x] PvP arena scaffold: plaza duel pad, 1v1 via shared combat engine (ranked seasons later)
 - [ ] Membership gamepass: all districts + daily crown stipend
 - [ ] Analytics funnels: where do players quit; tune difficulty there
 

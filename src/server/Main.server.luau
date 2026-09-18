@@ -11,6 +11,7 @@ local HubService = require(ServerScriptService.Server.HubService) :: any
 local EnemySpawner = require(ServerScriptService.Server.EnemySpawner) :: any
 local ChestService = require(ServerScriptService.Server.ChestService) :: any
 local ShopService = require(ServerScriptService.Server.ShopService) :: any
+local PvPService = require(ServerScriptService.Server.PvPService) :: any
 
 PlayerDataService.init()
 ShopService.init()
@@ -20,5 +21,6 @@ HubService.build()
 ZoneService.build()
 EnemySpawner.init()
 ChestService.init()
+PvPService.init()
 
 print("[NeonArcana] Server booted: Neon Plaza + 3 districts live. Pick a school, choom.")

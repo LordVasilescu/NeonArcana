@@ -93,6 +93,9 @@ check("BattleRunner.startBattle shim exists", typeof(BattleRunner.startBattle) =
 
 check("BuyMount remote exists", ReplicatedStorage.Remotes:FindFirstChild("BuyMount") ~= nil)
 
+local PvPService = require(ServerScriptService.Server.PvPService)
+check("PvPService.init exists", typeof(PvPService.init) == "function")
+
 -- 7. Sound layer ships with the client
 local starterScripts = game:GetService("StarterPlayer").StarterPlayerScripts
 check("SoundFX client script exists", starterScripts.Client:FindFirstChild("SoundFX") ~= nil)
