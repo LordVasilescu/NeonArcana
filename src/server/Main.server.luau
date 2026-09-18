@@ -14,6 +14,7 @@ local ShopService = require(ServerScriptService.Server.ShopService) :: any
 
 PlayerDataService.init()
 ShopService.init()
+ShopService.initMounts()
 BattleRunner.init()
 HubService.build()
 ZoneService.build()

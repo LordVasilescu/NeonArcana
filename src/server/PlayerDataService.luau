@@ -363,6 +363,25 @@ function PlayerDataService.init()
 		if RunService:IsStudio() and CrownService.getBalance(player) == 0 then
 			CrownService.grant(player.UserId, STUDIO_STARTER_CROWNS)
 		end
+
+		-- daily login reward: credits scale with streak, small crown stipend
+		local p = profiles[player]
+		local today = os.date("!%Y-%m-%d")
+		if p and p.lastLogin ~= today then
+			local yesterday = os.date("!%Y-%m-%d", os.time() - 86400)
+			p.loginStreak = (p.lastLogin == yesterday) and ((p.loginStreak or 0) + 1) or 1
+			p.lastLogin = today
+			local creditReward = math.min(100 + (p.loginStreak - 1) * 25, 250)
+			local crownReward = 25
+			p.credits += creditReward
+			CrownService.grant(player.UserId, crownReward)
+			PlayerDataService.notify(
+				player,
+				("DAILY LOGIN day %d: +%d credits, +%d crowns!"):format(p.loginStreak, creditReward, crownReward)
+			)
+			saveProfile(player)
+		end
+
 		PlayerDataService.pushHUD(player)
 	end)
 

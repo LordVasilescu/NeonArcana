@@ -14,6 +14,7 @@ local unlockZone = remotes:WaitForChild("UnlockZone")
 local selectSchool = remotes:WaitForChild("SelectSchool")
 local deckUpdate = remotes:WaitForChild("DeckUpdate")
 local buyPack = remotes:WaitForChild("BuyPack")
+local buyMount = remotes:WaitForChild("BuyMount")
 
 local player = Players.LocalPlayer
 
@@ -325,6 +326,20 @@ end
 
 local buyPackButton = shopPanelButton("BUY PACK (100)", 0.07, Color3.fromRGB(255, 220, 80))
 local closeShopButton = shopPanelButton("CLOSE", 0.53, Color3.fromRGB(120, 120, 140))
+
+local mountButton = Instance.new("TextButton")
+mountButton.Size = UDim2.fromScale(0.86, 0.12)
+mountButton.Position = UDim2.fromScale(0.07, 0.64)
+mountButton.BackgroundColor3 = Color3.fromRGB(40, 255, 200)
+mountButton.TextColor3 = Color3.new(0, 0, 0)
+mountButton.TextScaled = true
+mountButton.Font = Enum.Font.Code
+mountButton.Text = "HOVERBOARD (500) — +62% SPEED / toggle if owned"
+mountButton.ZIndex = 4
+mountButton.Parent = shopPanel
+mountButton.Activated:Connect(function()
+	buyMount:FireServer()
+end)
 
 shopButton.Activated:Connect(function()
 	shopPanel.Visible = true

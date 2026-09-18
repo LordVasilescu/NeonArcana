@@ -9,10 +9,15 @@ local SpellData = require(ReplicatedStorage.Shared.SpellData)
 local CrownService = require(script.Parent.CrownService)
 local PlayerDataService = require(script.Parent.PlayerDataService)
 
+local Players = game:GetService("Players")
+
 local remotes = ReplicatedStorage:WaitForChild("Remotes")
 local buyPack = remotes:WaitForChild("BuyPack")
+local buyMount = remotes:WaitForChild("BuyMount")
 
 local PACK_COST = 100
+local MOUNT_COST = 500
+local MOUNT_SPEED = 26 -- default WalkSpeed is 16; hoverboard = +62%
 -- Published odds: common 60% (0-1 cycle), uncommon 30% (2 cycle), rare 10% (3 cycle)
 local ODDS = { common = 0.6, uncommon = 0.3, rare = 0.1 }
 
@@ -64,6 +69,45 @@ function ShopService.init()
 			)
 		)
 		PlayerDataService.pushHUD(player)
+	end)
+end
+
+local function applyMountSpeed(player)
+	local profile = PlayerDataService.get(player)
+	local character = player.Character
+	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+	if humanoid then
+		humanoid.WalkSpeed = (profile and profile.mountActive) and MOUNT_SPEED or 16
+	end
+end
+
+function ShopService.initMounts()
+	buyMount.OnServerEvent:Connect(function(player)
+		local profile = PlayerDataService.get(player)
+		if not profile then
+			return
+		end
+		if not profile.mountOwned then
+			if not CrownService.trySpend(player, MOUNT_COST) then
+				PlayerDataService.notify(player, ("Not enough Crowns (hoverboard costs %d)."):format(MOUNT_COST))
+				return
+			end
+			profile.mountOwned = true
+			profile.mountActive = true
+			PlayerDataService.notify(player, "HOVERBOARD ACQUIRED! Speed boost active. Buy again to toggle.")
+		else
+			profile.mountActive = not profile.mountActive
+			PlayerDataService.notify(player, profile.mountActive and "Hoverboard ON." or "Hoverboard stowed.")
+		end
+		applyMountSpeed(player)
+		PlayerDataService.pushHUD(player)
+	end)
+
+	Players.PlayerAdded:Connect(function(player)
+		player.CharacterAdded:Connect(function()
+			task.wait(0.5)
+			applyMountSpeed(player)
+		end)
 	end)
 end
 

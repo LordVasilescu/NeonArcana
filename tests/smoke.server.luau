@@ -91,6 +91,8 @@ local BattleRunner = require(ServerScriptService.Server.BattleRunner)
 check("BattleRunner.requestJoin exists", typeof(BattleRunner.requestJoin) == "function")
 check("BattleRunner.startBattle shim exists", typeof(BattleRunner.startBattle) == "function")
 
+check("BuyMount remote exists", ReplicatedStorage.Remotes:FindFirstChild("BuyMount") ~= nil)
+
 -- 7. Sound layer ships with the client
 local starterScripts = game:GetService("StarterPlayer").StarterPlayerScripts
 check("SoundFX client script exists", starterScripts.Client:FindFirstChild("SoundFX") ~= nil)

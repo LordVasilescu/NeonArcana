@@ -17,7 +17,8 @@
         "UnlockZone": { "$className": "RemoteEvent" },
         "SelectSchool": { "$className": "RemoteEvent" },
         "DeckUpdate": { "$className": "RemoteEvent" },
-        "BuyPack": { "$className": "RemoteEvent" }
+        "BuyPack": { "$className": "RemoteEvent" },
+        "BuyMount": { "$className": "RemoteEvent" }
       }
     },
     "ServerScriptService": {
