@@ -75,8 +75,19 @@ function BattleRunner.startBattle(player: Player, enemyId: string)
 	local heroPower = math.min(0.05 + 0.025 * (level - 1) + gearPower, 0.6) -- power pips grow with level + gear
 	local foePower = enemyDef.boss and 0.25 or 0.1
 
-	local hero =
-		CombatService.newCombatant(player, player.Name, heroHP, PlayerDataService.getDeck(player), heroPower, gearAcc)
+	-- deck = custom loadout + any treasure cards not already in it (single-use)
+	local deck = PlayerDataService.getDeck(player)
+	local treasureInHand = {}
+	if profile and profile.treasureCards then
+		for cardId, count in profile.treasureCards do
+			if count > 0 and SpellData[cardId] and not table.find(deck, cardId) then
+				table.insert(deck, cardId)
+				treasureInHand[cardId] = true
+			end
+		end
+	end
+
+	local hero = CombatService.newCombatant(player, player.Name, heroHP, deck, heroPower, gearAcc)
 	local foe = CombatService.newCombatant(nil, enemyDef.name, enemyDef.health, table.clone(enemyDef.deck), foePower)
 	local battle = CombatService.newBattle({ hero, foe })
 	inBattle[player] = battle
@@ -95,8 +106,26 @@ function BattleRunner.startBattle(player: Player, enemyId: string)
 				task.wait(0.1)
 			end
 
+			local castId = hero.pendingCast
 			npcPick(battle, 2, 1)
 			CombatService.resolveRound(battle)
+
+			-- treasure cards burn on cast (fizzle included, W101 rules)
+			if castId and treasureInHand[castId] then
+				treasureInHand[castId] = nil
+				local slot = table.find(hero.deck, castId)
+				if slot then
+					table.remove(hero.deck, slot)
+				end
+				local prof = PlayerDataService.get(player)
+				if prof and prof.treasureCards and prof.treasureCards[castId] then
+					prof.treasureCards[castId] -= 1
+					if prof.treasureCards[castId] <= 0 then
+						prof.treasureCards[castId] = nil
+					end
+				end
+			end
+
 			battleState:FireClient(player, { phase = "resolve", state = snapshot(battle) })
 			task.wait(RESOLVE_PAUSE)
 		end

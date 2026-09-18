@@ -13,6 +13,7 @@ local notifyRemote = remotes:WaitForChild("Notify")
 local unlockZone = remotes:WaitForChild("UnlockZone")
 local selectSchool = remotes:WaitForChild("SelectSchool")
 local deckUpdate = remotes:WaitForChild("DeckUpdate")
+local buyPack = remotes:WaitForChild("BuyPack")
 
 local player = Players.LocalPlayer
 
@@ -261,6 +262,78 @@ saveDeckButton.Activated:Connect(function()
 end)
 closeDeckButton.Activated:Connect(function()
 	deckPanel.Visible = false
+end)
+
+-- ---------- card shop ----------
+local shopButton = Instance.new("TextButton")
+shopButton.Size = UDim2.fromScale(0.08, 0.05)
+shopButton.Position = UDim2.fromScale(0.01, 0.2)
+shopButton.BackgroundColor3 = Color3.fromRGB(25, 25, 40)
+shopButton.TextColor3 = Color3.fromRGB(255, 220, 80)
+shopButton.TextScaled = true
+shopButton.Font = Enum.Font.Code
+shopButton.Text = "SHOP"
+shopButton.Parent = gui
+local shopStroke = Instance.new("UIStroke")
+shopStroke.Color = Color3.fromRGB(255, 220, 80)
+shopStroke.Thickness = 2
+shopStroke.Parent = shopButton
+
+local shopPanel = Instance.new("Frame")
+shopPanel.Size = UDim2.fromScale(0.4, 0.42)
+shopPanel.Position = UDim2.fromScale(0.5, 0.5)
+shopPanel.AnchorPoint = Vector2.new(0.5, 0.5)
+shopPanel.BackgroundColor3 = Color3.fromRGB(12, 12, 22)
+shopPanel.BorderSizePixel = 0
+shopPanel.Visible = false
+shopPanel.ZIndex = 4
+shopPanel.Parent = gui
+local shopPanelStroke = Instance.new("UIStroke")
+shopPanelStroke.Color = Color3.fromRGB(255, 220, 80)
+shopPanelStroke.Thickness = 2
+shopPanelStroke.Parent = shopPanel
+
+codeLabel(shopPanel, {
+	Size = UDim2.fromScale(0.9, 0.14),
+	Position = UDim2.fromScale(0.05, 0.04),
+	Text = "CARD SHOP — PROTOCOL PACKS",
+	TextColor3 = Color3.fromRGB(255, 220, 80),
+	ZIndex = 4,
+})
+-- Odds published per Roblox paid-random-item policy; must match ShopService.ODDS
+codeLabel(shopPanel, {
+	Size = UDim2.fromScale(0.9, 0.42),
+	Position = UDim2.fromScale(0.05, 0.2),
+	Text = "100 CROWNS = 1 single-use card\nfrom ANY school (cast off-school!)\n\nODDS PER PACK:\nCommon (0-1 cyc)  60%\nUncommon (2 cyc)  30%\nRare (3 cyc)  10%",
+	TextColor3 = Color3.new(1, 1, 1),
+	ZIndex = 4,
+})
+
+local function shopPanelButton(text, xPos, color)
+	local button = Instance.new("TextButton")
+	button.Size = UDim2.fromScale(0.4, 0.14)
+	button.Position = UDim2.fromScale(xPos, 0.78)
+	button.BackgroundColor3 = color
+	button.TextColor3 = Color3.new(0, 0, 0)
+	button.TextScaled = true
+	button.Font = Enum.Font.Code
+	button.Text = text
+	button.ZIndex = 4
+	button.Parent = shopPanel
+	return button
+end
+
+local buyPackButton = shopPanelButton("BUY PACK (100)", 0.07, Color3.fromRGB(255, 220, 80))
+local closeShopButton = shopPanelButton("CLOSE", 0.53, Color3.fromRGB(120, 120, 140))
+
+shopButton.Activated:Connect(function()
+	shopPanel.Visible = true
+end)
+buyPackButton.Activated:Connect(function()
+	buyPack:FireServer()
+end)
+closeShopButton.Activated:Connect(function()
+	shopPanel.Visible = false
 end)
 
 -- school selection (first join)

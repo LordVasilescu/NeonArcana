@@ -15,7 +15,7 @@ smoke test -> commit. Add smoke checks for new systems as they land.
 - [x] Neon Plaza (Commons): fountain, 7 school pylons, 3 shop kiosks, Chief Codewright
 - [x] Tripo asset generation: 17 models exported (enemies, commons set, props, hoverboards)
 - [x] Deck editor UI: DECK button, 7-slot loadout, server-validated custom decks
-- [ ] Card packs in shop: 100 crowns/pack, treasure cards, SHOW ODDS (Roblox rule)
+- [x] Card packs: Protocol Packs 100 crowns, single-use any-school treasure cards, odds published 60/30/10
 - [ ] Group combat: up to 4 players join the same battle circle
 - [ ] Sound: combat cast/hit/fizzle SFX + ambient city loop (Roblox Creator Store free ids)
 - [ ] Mesh uploads: needs Roblox login in Chrome -> Open Cloud key -> tools/roblox_upload.py

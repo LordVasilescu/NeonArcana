@@ -82,8 +82,9 @@ check("all enemy drops reference real gear", dropsValid)
 local geared = CombatService.newCombatant(nil, "Geared", 100, { "ember_jab" }, 0, 10)
 check("accuracy bonus stored on combatant", geared.accuracyBonus == 10)
 
--- 5. Deck editor plumbing
+-- 5. Deck editor + shop plumbing
 check("DeckUpdate remote exists", ReplicatedStorage.Remotes:FindFirstChild("DeckUpdate") ~= nil)
+check("BuyPack remote exists", ReplicatedStorage.Remotes:FindFirstChild("BuyPack") ~= nil)
 
 if failures == 0 then
 	print("SMOKE_RESULT: ALL PASS")

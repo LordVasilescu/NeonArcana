@@ -16,7 +16,8 @@
         "Notify": { "$className": "RemoteEvent" },
         "UnlockZone": { "$className": "RemoteEvent" },
         "SelectSchool": { "$className": "RemoteEvent" },
-        "DeckUpdate": { "$className": "RemoteEvent" }
+        "DeckUpdate": { "$className": "RemoteEvent" },
+        "BuyPack": { "$className": "RemoteEvent" }
       }
     },
     "ServerScriptService": {
@@ -37,6 +38,7 @@
     "Lighting": {
       "$className": "Lighting",
       "$properties": {
+        "Technology": "ShadowMap",
         "ClockTime": 0,
         "Brightness": 2,
         "Ambient": [0.28, 0.28, 0.38],
