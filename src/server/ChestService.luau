@@ -87,7 +87,7 @@ function ChestService.init()
 		local right = Vector3.new(-zone.dir.Z, 0, zone.dir.X)
 		for i, at in { 0.35, 0.85 } do
 			local side = if i == 1 then 1 else -1
-			local position = zone.dir * (ZoneData.ROAD_START + ZoneData.ROAD_LENGTH * at)
+			local position = zone.dir * ((zone.startOverride or ZoneData.ROAD_START) + ZoneData.ROAD_LENGTH * at)
 				+ right * (side * (ZoneData.ROAD_WIDTH / 2 - 4))
 			makeChest(zone.id .. "_cache_" .. i, zone.id, position, folder)
 		end

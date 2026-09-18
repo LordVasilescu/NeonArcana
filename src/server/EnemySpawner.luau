@@ -81,7 +81,8 @@ function EnemySpawner.init()
 
 	for _, zone in ZoneData.list do
 		for _, padSpec in zone.pads do
-			local position = zone.dir * (ZoneData.ROAD_START + ZoneData.ROAD_LENGTH * padSpec.at)
+			local position = zone.dir
+				* ((zone.startOverride or ZoneData.ROAD_START) + ZoneData.ROAD_LENGTH * padSpec.at)
 			makePad(padSpec.enemy, position, folder)
 		end
 	end

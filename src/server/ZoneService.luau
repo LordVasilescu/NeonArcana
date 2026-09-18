@@ -49,11 +49,11 @@ local ACCENTS = {
 }
 
 -- Skyline: dark towers with a neon crown strip, lining both sides of a street.
-local function buildSkyline(folder: Folder, dir: Vector3, isXAxis: boolean)
+local function buildSkyline(folder: Folder, dir: Vector3, isXAxis: boolean, start: number)
 	local right = Vector3.new(-dir.Z, 0, dir.X)
 	for i = 1, 8 do
 		for side = -1, 1, 2 do
-			local along = ZoneData.ROAD_START + (i - 0.5) * (ZoneData.ROAD_LENGTH / 8)
+			local along = start + (i - 0.5) * (ZoneData.ROAD_LENGTH / 8)
 			local lateral = (ZoneData.ROAD_WIDTH / 2 + 14 + math.random(0, 10)) * side
 			local height = math.random(25, 85)
 			local width = math.random(10, 18)
@@ -92,11 +92,11 @@ local function buildSkyline(folder: Folder, dir: Vector3, isXAxis: boolean)
 	end
 end
 
-local function buildLamps(folder: Folder, dir: Vector3)
+local function buildLamps(folder: Folder, dir: Vector3, start: number)
 	local right = Vector3.new(-dir.Z, 0, dir.X)
 	for i = 1, 4 do
 		for side = -1, 1, 2 do
-			local along = ZoneData.ROAD_START + (i - 0.5) * (ZoneData.ROAD_LENGTH / 4)
+			local along = start + (i - 0.5) * (ZoneData.ROAD_LENGTH / 4)
 			local base = dir * along + right * ((ZoneData.ROAD_WIDTH / 2 + 3) * side)
 			local pole = part({
 				Name = "LampPole",
@@ -197,8 +197,8 @@ function ZoneService.build()
 
 	for _, zone in ZoneData.list do
 		local dir = zone.dir
-		local entrance = dir * ZoneData.ROAD_START
-		local mid = dir * (ZoneData.ROAD_START + ZoneData.ROAD_LENGTH / 2)
+		local entrance = dir * (zone.startOverride or ZoneData.ROAD_START)
+		local mid = dir * ((zone.startOverride or ZoneData.ROAD_START) + ZoneData.ROAD_LENGTH / 2)
 		local isXAxis = math.abs(dir.X) > 0.5
 
 		-- road
@@ -228,8 +228,9 @@ function ZoneService.build()
 			curb.Parent = folder
 		end
 
-		buildSkyline(folder, dir, isXAxis)
-		buildLamps(folder, dir)
+		local start = zone.startOverride or ZoneData.ROAD_START
+		buildSkyline(folder, dir, isXAxis, start)
+		buildLamps(folder, dir, start)
 		buildFixer(zone, folder, entrance, dir)
 
 		if zone.crownCost > 0 then

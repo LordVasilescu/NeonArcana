@@ -11,6 +11,7 @@ export type Zone = {
 	crownCost: number,
 	dir: Vector3, -- unit direction from hub center
 	pads: { Pad },
+	startOverride: number?, -- road start distance; default ROAD_START (lets zones chain outward)
 }
 
 local ROAD_START = 40 -- studs from hub center to road entrance
@@ -54,6 +55,20 @@ local list: { Zone } = {
 			{ enemy = "sentinel_unit", at = 0.25 },
 			{ enemy = "sentinel_unit", at = 0.5 },
 			{ enemy = "glitch_king", at = 0.9 },
+		},
+	},
+	-- District 5: chained beyond the Chrome Strip — walk it to the end and descend.
+	{
+		id = "undergrid",
+		name = "The Undergrid",
+		levelText = "Lv 18-25",
+		crownCost = 1250,
+		dir = Vector3.new(0, 0, -1),
+		startOverride = 200, -- begins where Chrome Strip ends
+		pads = {
+			{ enemy = "grid_stalker", at = 0.3 }, -- placeholder roster until Undergrid enemies land
+			{ enemy = "grid_stalker", at = 0.6 },
+			{ enemy = "overseer_prime", at = 0.92 },
 		},
 	},
 	-- The Colossus Boulevard move: one late premium street once you're hooked.
