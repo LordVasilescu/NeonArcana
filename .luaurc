@@ -1,0 +1,12 @@
+{
+  "languageMode": "nonstrict",
+  "lint": {
+    "*": true,
+    "LocalUnused": false
+  },
+  "aliases": {
+    "shared": "src/shared",
+    "server": "src/server",
+    "client": "src/client"
+  }
+}

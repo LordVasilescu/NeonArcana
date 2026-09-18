@@ -13,7 +13,25 @@ import urllib.request
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 API = "https://api.tripo3d.ai/v2/openapi"
-BLENDER = r"C:\Program Files (x86)\Steam\steamapps\common\Blender\blender.exe"
+
+
+def find_blender() -> str:
+    """BLENDER_PATH env var, then the standard installer location (newest version), then Steam."""
+    candidates = []
+    if os.environ.get("BLENDER_PATH"):
+        candidates.append(pathlib.Path(os.environ["BLENDER_PATH"]))
+    foundation = pathlib.Path(r"C:\Program Files\Blender Foundation")
+    if foundation.exists():
+        for folder in sorted(foundation.iterdir(), reverse=True):
+            candidates.append(folder / "blender.exe")
+    candidates.append(pathlib.Path(r"C:\Program Files (x86)\Steam\steamapps\common\Blender\blender.exe"))
+    for candidate in candidates:
+        if candidate.exists():
+            return str(candidate)
+    sys.exit("Blender not found. Install it (winget install BlenderFoundation.Blender) or set BLENDER_PATH.")
+
+
+BLENDER = find_blender()
 
 
 def load_env():

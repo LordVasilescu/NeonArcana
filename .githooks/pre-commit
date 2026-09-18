@@ -1,0 +1,5 @@
+#!/bin/sh
+# Pre-commit gate: format check, lint, type check, build (no Studio).
+# Enabled per clone with:  git config core.hooksPath .githooks
+# Skip once with:          git commit --no-verify
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "tools/check.ps1" -Fast

@@ -121,7 +121,8 @@ function PlayerDataService.acceptSideQuest(player, zoneId: string)
 		return
 	end
 	p.sideQuests = p.sideQuests or {}
-	for _, quest in SideQuestData.byZone[zoneId] or {} do
+	local zoneQuests: { SideQuestData.SideQuest } = SideQuestData.byZone[zoneId] or {}
+	for _, quest in zoneQuests do
 		local state = p.sideQuests[quest.id]
 		if not state then
 			p.sideQuests[quest.id] = { kills = 0, done = false }

@@ -45,7 +45,7 @@ battleState.OnClientEvent:Connect(function(payload)
 		return
 	end
 	local events = payload.state and payload.state.events or {}
-	local played = {}
+	local played: { [string]: boolean } = {}
 	for _, line in events do
 		if line:find("FIZZLED") and not played.fizzle then
 			played.fizzle = true

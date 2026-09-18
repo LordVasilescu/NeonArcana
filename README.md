@@ -14,10 +14,30 @@ Cyberpunk turn-based spell-dueling MMO for Roblox. See `GDD.md` for the full des
    - Fix the require path in CombatService if needed
      (`ReplicatedStorage.Shared.SpellData`).
 
-**Option B — Rojo (proper workflow, recommended once serious):**
-1. `winget install Rojo.Rojo` (or use the Aftman/Rokit toolchain)
-2. Rojo syncs these files into Studio live, and you keep Git history.
-   Ask Claude to generate the `default.project.json` when ready.
+**Option B — Rojo (the real workflow, fully set up):**
+1. Install Rokit (`winget install Rojo.Rokit`), then in this folder run `rokit install`.
+   That gives you rojo, stylua, selene, luau-lsp, run-in-roblox, wally, lune, rbxcloud.
+2. `rojo serve` and connect the Rojo plugin in Studio; scripts sync live and Git keeps history.
+3. `build\NeonArcana.rbxl` is the canonical Studio-saved place (it holds the imported
+   models). Never overwrite it with `rojo build`; open it in Studio and save there.
+
+## Dev stack
+| Tool | Purpose |
+|---|---|
+| Rojo | syncs `src/` into Studio, builds place files, generates the sourcemap |
+| StyLua / Selene | formatting and linting |
+| luau-lsp | type checking against Roblox API types (`globalTypes.d.luau`, auto-downloaded) |
+| run-in-roblox | runs `tests/smoke.server.luau` inside Studio from the CLI |
+| Wally | Roblox package manager (`wally init` when the first dependency lands) |
+| Lune | Luau runtime outside Studio, for scripts and fast unit tests |
+| rbxcloud | Open Cloud CLI for publishing place updates without Studio |
+| Blender + Python 3 | Tripo asset conversion and previews (`tools/`); Blender found automatically or via `BLENDER_PATH` |
+| VS Code | `.vscode/` has settings and recommended extensions (Rojo, Luau LSP, StyLua, Selene) |
+
+**Quality gate:** `.\tools\check.ps1` runs format check, lint, type check, build, and the
+Studio smoke test. `-Fast` skips Studio, `-Fix` auto-formats first. The same gate minus
+Studio runs on every push via GitHub Actions (`.github/workflows/ci.yml`) and as a
+pre-commit hook once you run `git config core.hooksPath .githooks`.
 
 ## Before monetization works
 1. Publish the game (File → Publish to Roblox).

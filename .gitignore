@@ -9,6 +9,14 @@ sourcemap.json
 roblox.toml
 roblox.yml
 
+# luau-lsp Roblox type definitions (downloaded by tools/check.ps1 and CI)
+globalTypes.d.luau
+
+# Wally packages (restored with `wally install`)
+Packages/
+ServerPackages/
+DevPackages/
+
 # Tripo/Blender working files (keep exports out of git; they're big binaries)
 assets/raw/
 assets/export/*.fbx

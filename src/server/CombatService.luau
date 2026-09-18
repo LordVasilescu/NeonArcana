@@ -95,7 +95,7 @@ local function applySpell(battle: Battle, caster: Combatant, spell: SpellData.Sp
 	local totalDamage, totalHeal, buffed = 0, 0, false
 	for _, effect in spell.effects do
 		if effect.kind == "Blade" then
-			table.insert(caster.blades, { school = spell.school, amount = effect.amount })
+			table.insert(caster.blades, { school = spell.school :: string, amount = effect.amount })
 			buffed = true
 		elseif effect.kind == "Trap" then
 			table.insert(target.traps, { amount = effect.amount })

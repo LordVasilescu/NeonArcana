@@ -6,9 +6,16 @@ param(
     [int]$Tris = 8000
 )
 
-$blender = "C:\Program Files (x86)\Steam\steamapps\common\Blender\blender.exe"
-if (-not (Test-Path $blender)) {
-    Write-Error "Blender not found at $blender — update the path in this script."
+# Blender lookup: BLENDER_PATH env var, then the standard installer location, then Steam.
+$candidates = @(
+    $env:BLENDER_PATH,
+    (Get-ChildItem "C:\Program Files\Blender Foundation" -Directory -ErrorAction SilentlyContinue |
+        Sort-Object Name -Descending | ForEach-Object { Join-Path $_.FullName "blender.exe" } | Select-Object -First 1),
+    "C:\Program Files (x86)\Steam\steamapps\common\Blender\blender.exe"
+) | Where-Object { $_ -and (Test-Path $_) }
+$blender = $candidates | Select-Object -First 1
+if (-not $blender) {
+    Write-Error "Blender not found. Install it (winget install BlenderFoundation.Blender) or set BLENDER_PATH."
     exit 1
 }
 
