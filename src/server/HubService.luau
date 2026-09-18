@@ -50,6 +50,33 @@ local function billboard(parent: BasePart, text: string, color: Color3?, width: 
 end
 
 local function buildFountain(folder: Folder)
+	-- Adopt a Studio-imported fountain model if one exists in Workspace
+	local imported = Workspace:FindFirstChild("commons_fountain")
+	if imported and imported:IsA("Model") then
+		local ok = pcall(function()
+			local size = imported:GetExtentsSize()
+			imported:ScaleTo(18 / math.max(size.X, size.Z, 0.001))
+			local scaled = imported:GetExtentsSize()
+			imported:PivotTo(CFrame.new(0, 1.25 + scaled.Y / 2, 0))
+		end)
+		if ok then
+			local anchor = imported:FindFirstChildWhichIsA("BasePart", true)
+			if anchor then
+				local light = Instance.new("PointLight")
+				light.Range = 40
+				light.Brightness = 2
+				light.Color = Color3.fromRGB(60, 255, 210)
+				light.Parent = anchor
+				billboard(anchor, "NEON PLAZA", Color3.fromRGB(60, 255, 210), 20, 14)
+			end
+			for _, descendant in imported:GetDescendants() do
+				if descendant:IsA("BasePart") then
+					descendant.Anchored = true
+				end
+			end
+			return
+		end
+	end
 	-- Tripo fountain replaces the procedural one once uploaded
 	if MeshVisuals.available("commons_fountain") then
 		local mesh = MeshVisuals.place("commons_fountain", CFrame.new(0, 1.25, 0), Vector3.new(18, 20, 18), folder)
