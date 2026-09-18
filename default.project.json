@@ -70,7 +70,7 @@
         "$properties": {
           "Anchored": true,
           "Size": [12, 1, 12],
-          "Position": [0, 1.4, 10],
+          "Position": [0, 1.4, -16],
           "Material": "Neon",
           "Color": [0.9, 0.3, 1.0],
           "Duration": 0,
