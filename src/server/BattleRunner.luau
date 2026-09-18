@@ -139,9 +139,22 @@ local function finishBattle(rec, won: boolean)
 	for player, hero in rec.heroes do
 		if player.Parent then
 			local xpGain, creditGain = 0, 0
+			local profile = PlayerDataService.get(player)
 			if won then
 				xpGain = def.xp * rec.enemyCount
 				creditGain = def.credits * rec.enemyCount
+				-- win streak bonus: +5 credits per streak, cap +50
+				if profile then
+					profile.winStreak = (profile.winStreak or 0) + 1
+					local bonus = math.min(profile.winStreak * 5, 50)
+					creditGain += bonus
+					if profile.winStreak % 5 == 0 then
+						PlayerDataService.notify(
+							player,
+							("WIN STREAK %d! +%d bonus credits per fight."):format(profile.winStreak, bonus)
+						)
+					end
+				end
 				PlayerDataService.addXP(player, xpGain)
 				PlayerDataService.addCredits(player, creditGain)
 				for _ = 1, rec.enemyCount do
@@ -157,11 +170,20 @@ local function finishBattle(rec, won: boolean)
 			end
 			battleEnd:FireClient(player, { won = won, xp = xpGain, credits = creditGain })
 			if not won or hero.health <= 0 then
+				if profile then
+					profile.winStreak = 0
+				end
+				-- W101 death rules: wake at the Plaza, patched to half health
 				local character = player.Character
 				local root = character and character:FindFirstChild("HumanoidRootPart")
+				local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 				if root then
 					root.CFrame = CFrame.new(0, 5, 10)
 				end
+				if humanoid then
+					humanoid.Health = humanoid.MaxHealth / 2
+				end
+				PlayerDataService.notify(player, "You wake up at the Plaza, patched to half power. Get back out there.")
 			end
 		end
 		inBattle[player] = nil

@@ -59,6 +59,20 @@ local crownsLabel = codeLabel(statsFrame, {
 	TextColor3 = Color3.fromRGB(255, 220, 80),
 })
 
+-- XP progress bar hugging the bottom of the stats panel
+local xpBarBack = Instance.new("Frame")
+xpBarBack.Size = UDim2.fromScale(1, 0.09)
+xpBarBack.Position = UDim2.fromScale(0, 1)
+xpBarBack.AnchorPoint = Vector2.new(0, 0)
+xpBarBack.BackgroundColor3 = Color3.fromRGB(30, 30, 45)
+xpBarBack.BorderSizePixel = 0
+xpBarBack.Parent = statsFrame
+local xpBarFill = Instance.new("Frame")
+xpBarFill.Size = UDim2.fromScale(0, 1)
+xpBarFill.BackgroundColor3 = Color3.fromRGB(200, 80, 255)
+xpBarFill.BorderSizePixel = 0
+xpBarFill.Parent = xpBarBack
+
 -- quest tracker, top-center
 local questLabel = codeLabel(gui, {
 	Size = UDim2.fromScale(0.4, 0.045),
@@ -418,6 +432,7 @@ hudUpdate.OnClientEvent:Connect(function(data)
 	latestOwned = data.ownedCards or {}
 	latestDeck = data.deck or {}
 	levelLabel.Text = ("LVL %d  XP %d/%d  %s"):format(data.level, data.xp, data.xpNeeded, data.school or "")
+	xpBarFill.Size = UDim2.fromScale(math.clamp(data.xp / math.max(data.xpNeeded, 1), 0, 1), 1)
 	creditsLabel.Text = ("CREDITS %d"):format(data.credits)
 	crownsLabel.Text = ("CROWNS %d"):format(data.crowns)
 	questLabel.Text = data.questText or ""
