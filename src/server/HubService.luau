@@ -49,6 +49,45 @@ local function billboard(parent: BasePart, text: string, color: Color3?, width: 
 	gui.Parent = parent
 end
 
+-- Adopt a Studio-imported model by name: scale to fit, stamp at one or more
+-- cframes (cloning for multiples), anchor everything. Returns true if adopted.
+local function adoptImported(name: string, fitSize: Vector3, cframes: { CFrame }, folder: Folder): boolean
+	local template = Workspace:FindFirstChild(name)
+	if not (template and template:IsA("Model")) then
+		return false
+	end
+	local ok = pcall(function()
+		local size = template:GetExtentsSize()
+		local factor = math.min(
+			fitSize.X / math.max(size.X, 0.001),
+			fitSize.Y / math.max(size.Y, 0.001),
+			fitSize.Z / math.max(size.Z, 0.001)
+		)
+		template:ScaleTo(factor)
+	end)
+	if not ok then
+		return false
+	end
+	local height = template:GetExtentsSize().Y
+	for index, cframe in cframes do
+		local instance = index == 1 and template or template:Clone()
+		instance:PivotTo(cframe * CFrame.new(0, height / 2, 0))
+		for _, descendant in instance:GetDescendants() do
+			if descendant:IsA("BasePart") then
+				descendant.Anchored = true
+			end
+		end
+		instance.Parent = folder
+	end
+	return true
+end
+
+local function ringCFrame(angleDeg: number, radius: number): CFrame
+	local rad = math.rad(angleDeg)
+	local pos = Vector3.new(math.cos(rad) * radius, 1.25, math.sin(rad) * radius)
+	return CFrame.lookAt(pos, Vector3.new(0, 1.25, 0))
+end
+
 local function buildFountain(folder: Folder)
 	-- Adopt a Studio-imported fountain model if one exists in Workspace
 	local imported = Workspace:FindFirstChild("commons_fountain")
@@ -203,38 +242,56 @@ local function buildShops(folder: Folder)
 	end
 end
 
--- Tripo set dressing: trees, benches, stalls, billboards. No-ops until uploads exist.
+-- Tripo set dressing: trees, benches, stalls, billboards. Adopts Studio-imported
+-- models first, then Open Cloud meshes; silent no-op until either exists.
 local function buildSetDressing(folder: Folder)
+	local treeCFrames, benchCFrames, billboardCFrames = {}, {}, {}
 	for _, angle in { 68, 158, 248, 338 } do
-		local rad = math.rad(angle)
-		local pos = Vector3.new(math.cos(rad) * 22, 1.25, math.sin(rad) * 22)
-		MeshVisuals.place("cyber_tree", CFrame.new(pos), Vector3.new(7, 12, 7), folder)
+		table.insert(treeCFrames, ringCFrame(angle, 22))
 	end
 	for _, angle in { 20, 110, 200, 290 } do
-		local rad = math.rad(angle)
-		local pos = Vector3.new(math.cos(rad) * 16, 1.25, math.sin(rad) * 16)
-		MeshVisuals.place("plaza_bench", CFrame.lookAt(pos, Vector3.new(0, 1.25, 0)), Vector3.new(6, 3, 3), folder)
+		table.insert(benchCFrames, ringCFrame(angle, 16))
 	end
-	MeshVisuals.place(
-		"food_stall",
-		CFrame.lookAt(Vector3.new(-20, 1.25, 24), Vector3.new(0, 1.25, 0)),
-		Vector3.new(10, 9, 8),
-		folder
-	)
 	for _, angle in { 225, 350 } do
-		local rad = math.rad(angle)
-		local pos = Vector3.new(math.cos(rad) * 35, 1.25, math.sin(rad) * 35)
-		MeshVisuals.place("holo_billboard", CFrame.lookAt(pos, Vector3.new(0, 1.25, 0)), Vector3.new(8, 14, 4), folder)
+		table.insert(billboardCFrames, ringCFrame(angle, 35))
 	end
-	-- crown statue guards the Crown Exchange
-	local exchangeAngle = math.rad(315)
-	local statuePos = Vector3.new(math.cos(exchangeAngle) * 26, 1.25, math.sin(exchangeAngle) * 26)
-	MeshVisuals.place("crown_statue", CFrame.lookAt(statuePos, Vector3.new(0, 1.25, 0)), Vector3.new(5, 8, 5), folder)
+	local stallCFrame = CFrame.lookAt(Vector3.new(-20, 1.25, 24), Vector3.new(0, 1.25, 0))
+	local statueCFrame = ringCFrame(315, 26)
+
+	if not adoptImported("cyber_tree", Vector3.new(7, 12, 7), treeCFrames, folder) then
+		for _, cframe in treeCFrames do
+			MeshVisuals.place("cyber_tree", cframe, Vector3.new(7, 12, 7), folder)
+		end
+	end
+	if not adoptImported("plaza_bench", Vector3.new(6, 3, 3), benchCFrames, folder) then
+		for _, cframe in benchCFrames do
+			MeshVisuals.place("plaza_bench", cframe, Vector3.new(6, 3, 3), folder)
+		end
+	end
+	if not adoptImported("food_stall", Vector3.new(10, 9, 8), { stallCFrame }, folder) then
+		MeshVisuals.place("food_stall", stallCFrame, Vector3.new(10, 9, 8), folder)
+	end
+	if not adoptImported("holo_billboard", Vector3.new(8, 14, 4), billboardCFrames, folder) then
+		for _, cframe in billboardCFrames do
+			MeshVisuals.place("holo_billboard", cframe, Vector3.new(8, 14, 4), folder)
+		end
+	end
+	if not adoptImported("crown_statue", Vector3.new(5, 8, 5), { statueCFrame }, folder) then
+		MeshVisuals.place("crown_statue", statueCFrame, Vector3.new(5, 8, 5), folder)
+	end
 end
 
 local function buildQuestGiver(folder: Folder)
-	-- Chief Codewright: our Ambrose. Tripo model once uploaded, capsule until then.
+	-- Chief Codewright: our Ambrose. Tripo model once imported/uploaded, capsule until then.
 	local npcCFrame = CFrame.lookAt(Vector3.new(9, 1.25, 4), Vector3.new(0, 1.25, 10))
+	if adoptImported("chief_codewright", Vector3.new(3, 6.5, 3), { npcCFrame }, folder) then
+		local adopted = folder:FindFirstChild("chief_codewright")
+		local anchor = adopted and adopted:FindFirstChildWhichIsA("BasePart", true)
+		if anchor then
+			billboard(anchor, "CHIEF CODEWRIGHT\nQuests up top, choom", Color3.fromRGB(255, 220, 80), 16, 6)
+		end
+		return
+	end
 	if MeshVisuals.available("chief_codewright") then
 		local mesh = MeshVisuals.place("chief_codewright", npcCFrame, Vector3.new(3, 6.5, 3), folder)
 		if mesh then
