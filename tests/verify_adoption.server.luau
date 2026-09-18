@@ -39,5 +39,12 @@ if plaza then
 	end
 end
 
+print("PREMADE_MODULE: " .. tostring(ServerScriptService.Server:FindFirstChild("PremadeAssets") ~= nil))
+local PremadeAssets = ServerScriptService.Server:FindFirstChild("PremadeAssets")
+if PremadeAssets then
+	local loader = require(PremadeAssets)
+	local test = loader.load(77342670464136)
+	print("PREMADE_LOAD_TEST: " .. tostring(test ~= nil) .. (test and (" size=" .. tostring(test:GetExtentsSize())) or ""))
+end
 print("TEMPLATES: " .. table.concat(templates, ", "))
 print(("ADOPTION_RESULT: templates=%d enemyModels=%d plazaModels=%d"):format(#templates, enemyModels, plazaModels))

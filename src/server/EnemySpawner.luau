@@ -12,6 +12,7 @@ local SchoolColors = require(ReplicatedStorage.Shared.SchoolColors)
 local BattleRunner = require(script.Parent.BattleRunner)
 local MeshVisuals = require(script.Parent.MeshVisuals)
 local AdoptModel = require(script.Parent.AdoptModel)
+local PremadeAssets = require(script.Parent.PremadeAssets)
 local ServerStorage = game:GetService("ServerStorage")
 
 local PAD_COOLDOWN = 5
@@ -21,9 +22,12 @@ local adoptTemplates: { [string]: Model } = {}
 
 local function prepareTemplates()
 	for enemyId, enemy in EnemyData do
+		local fit = enemy.boss and Vector3.new(11, 13, 11) or Vector3.new(6, 7.5, 6)
 		local model = Workspace:FindFirstChild(enemyId)
+		if not (model and model:IsA("Model")) and PremadeAssets.ids[enemyId] then
+			model = PremadeAssets.load(PremadeAssets.ids[enemyId])
+		end
 		if model and model:IsA("Model") then
-			local fit = enemy.boss and Vector3.new(11, 13, 11) or Vector3.new(6, 7.5, 6)
 			if AdoptModel.scaleToFit(model, fit) then
 				model.Parent = ServerStorage
 				adoptTemplates[enemyId] = model
