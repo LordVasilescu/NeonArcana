@@ -173,7 +173,11 @@ function PvPService.init()
 		if waiting == player then
 			return
 		end
-		if waiting and waiting.Parent and not duels[waiting] then
+		-- stale-waiter guard: they may have left or gotten pulled into a PvE fight
+		if waiting and (not waiting.Parent or BattleRunner.isBusy(waiting) or duels[waiting]) then
+			waiting = nil
+		end
+		if waiting then
 			local challenger = waiting
 			waiting = nil
 			task.spawn(runDuel, challenger, player)
