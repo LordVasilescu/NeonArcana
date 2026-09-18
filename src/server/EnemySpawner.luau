@@ -11,8 +11,26 @@ local EnemyData = require(ReplicatedStorage.Shared.EnemyData)
 local SchoolColors = require(ReplicatedStorage.Shared.SchoolColors)
 local BattleRunner = require(script.Parent.BattleRunner)
 local MeshVisuals = require(script.Parent.MeshVisuals)
+local AdoptModel = require(script.Parent.AdoptModel)
+local ServerStorage = game:GetService("ServerStorage")
 
 local PAD_COOLDOWN = 5
+
+-- Studio-imported enemy models, scaled once and stashed as clone templates
+local adoptTemplates: { [string]: Model } = {}
+
+local function prepareTemplates()
+	for enemyId, enemy in EnemyData do
+		local model = Workspace:FindFirstChild(enemyId)
+		if model and model:IsA("Model") then
+			local fit = enemy.boss and Vector3.new(11, 13, 11) or Vector3.new(6, 7.5, 6)
+			if AdoptModel.scaleToFit(model, fit) then
+				model.Parent = ServerStorage
+				adoptTemplates[enemyId] = model
+			end
+		end
+	end
+end
 
 local EnemySpawner = {}
 
@@ -62,19 +80,21 @@ local function makePad(enemyId: string, position: Vector3, parent: Instance)
 	pad.Parent = parent
 	hookPad(pad, enemyId)
 
-	-- real Tripo model standing on the pad once uploaded; pad glow stays as the tell
+	-- real Tripo model standing on the pad; imported template first, cloud mesh fallback
+	local stance = CFrame.lookAt(pad.Position + Vector3.new(0, 0.5, 0), Vector3.new(0, pad.Position.Y, 0))
+	local template = adoptTemplates[enemyId]
+	if template then
+		AdoptModel.stamp(template, stance, parent)
+		return
+	end
 	local fit = enemy.boss and Vector3.new(11, 13, 11) or Vector3.new(6, 7.5, 6)
 	task.spawn(function()
-		MeshVisuals.place(
-			enemyId,
-			CFrame.lookAt(pad.Position + Vector3.new(0, 0.5, 0), Vector3.new(0, pad.Position.Y, 0)),
-			fit,
-			parent
-		)
+		MeshVisuals.place(enemyId, stance, fit, parent)
 	end)
 end
 
 function EnemySpawner.init()
+	prepareTemplates()
 	local folder = Instance.new("Folder")
 	folder.Name = "EnemyPads"
 	folder.Parent = Workspace
