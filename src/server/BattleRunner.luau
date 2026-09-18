@@ -297,13 +297,23 @@ function BattleRunner.startBattle(player: Player, enemyId: string)
 end
 
 function BattleRunner.init()
-	castRequest.OnServerEvent:Connect(function(player, spellId)
+	castRequest.OnServerEvent:Connect(function(player, spellId, targetSlot)
 		local rec = inBattle[player]
 		if not rec or typeof(spellId) ~= "string" then
 			return
 		end
 		local casterIndex = rec.heroIndex[player]
-		local targetIndex = firstLivingEnemyIndex(rec.battle)
+		-- targetSlot counts living enemies left-to-right; defaults to the first
+		local enemySlots = {}
+		for i, c in rec.battle.combatants do
+			if c.player == nil and c.health > 0 then
+				table.insert(enemySlots, i)
+			end
+		end
+		local targetIndex = enemySlots[1] or firstLivingEnemyIndex(rec.battle)
+		if typeof(targetSlot) == "number" and enemySlots[targetSlot] then
+			targetIndex = enemySlots[targetSlot]
+		end
 		if casterIndex and targetIndex then
 			CombatService.requestCast(rec.battle, casterIndex, spellId, targetIndex)
 		end

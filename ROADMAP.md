@@ -19,7 +19,7 @@ smoke test -> commit. Add smoke checks for new systems as they land.
 - [x] Group combat: shared battle circles, join mid-fight, +1 enemy per joiner, 4v4 cap, catch-up cycles
 - [x] Sound: full SFX layer from guaranteed rbxasset built-ins (deal/hit/burn/fizzle/heal/win/lose/ping) + ambient city wind
 - [ ] Mesh uploads: needs Roblox login in Chrome -> Open Cloud key -> tools/roblox_upload.py
-- [ ] Animations: Tripo Animate (auto-rig) on enemy models, or Roblox pre-built emotes
+- [x] Animations: Tripo Animate API pipeline proven (tools/tripo_animate.py) - scrap_punk_walk.fbx rigged + walking; batch remaining enemies next
 - [ ] Grok images: game icon + thumbnails - needs XAI_API_KEY in .env
 
 ## Phase 2 - Ship it
