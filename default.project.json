@@ -15,7 +15,8 @@
         "HUDUpdate": { "$className": "RemoteEvent" },
         "Notify": { "$className": "RemoteEvent" },
         "UnlockZone": { "$className": "RemoteEvent" },
-        "SelectSchool": { "$className": "RemoteEvent" }
+        "SelectSchool": { "$className": "RemoteEvent" },
+        "DeckUpdate": { "$className": "RemoteEvent" }
       }
     },
     "ServerScriptService": {

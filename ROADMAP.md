@@ -14,7 +14,7 @@ smoke test -> commit. Add smoke checks for new systems as they land.
 - [x] Boss drops: Glitch Crown / Overseer Halo guaranteed (chance=1 drop tables)
 - [x] Neon Plaza (Commons): fountain, 7 school pylons, 3 shop kiosks, Chief Codewright
 - [x] Tripo asset generation: 17 models exported (enemies, commons set, props, hoverboards)
-- [ ] Deck editor UI: choose which owned cards go in your deck (W101's deckbuilding)
+- [x] Deck editor UI: DECK button, 7-slot loadout, server-validated custom decks
 - [ ] Card packs in shop: 100 crowns/pack, treasure cards, SHOW ODDS (Roblox rule)
 - [ ] Group combat: up to 4 players join the same battle circle
 - [ ] Sound: combat cast/hit/fizzle SFX + ambient city loop (Roblox Creator Store free ids)

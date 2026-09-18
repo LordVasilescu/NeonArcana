@@ -20,6 +20,10 @@ local hudUpdate = remotes:WaitForChild("HUDUpdate")
 local notify = remotes:WaitForChild("Notify")
 local selectSchool = remotes:WaitForChild("SelectSchool")
 local unlockZone = remotes:WaitForChild("UnlockZone")
+local deckUpdate = remotes:WaitForChild("DeckUpdate")
+
+local MAX_DECK = 7
+local MIN_DECK = 3
 
 local SCHOOLS = { "Burnout", "Coolant", "Surge", "Patch", "Leech", "Ghost", "Kernel" }
 local STUDIO_STARTER_CROWNS = 2500 -- test wallet so the crown gate is exercisable offline
@@ -81,6 +85,8 @@ function PlayerDataService.pushHUD(player)
 		crowns = CrownService.getBalance(player),
 		school = p.school,
 		questText = questText,
+		ownedCards = PlayerDataService.getOwnedCards(player),
+		deck = PlayerDataService.getDeck(player),
 	})
 end
 
@@ -220,17 +226,20 @@ function PlayerDataService.awardGear(player, gearId: string)
 	end
 end
 
--- Battle deck: your school's spells at or below your level, cheap cards first.
-function PlayerDataService.getDeck(player): { string }
-	local p = profiles[player]
+-- Every card this profile owns: school spells at or below level.
+local function ownedCards(p): { string }
 	local school = (p and p.school) or "Burnout"
 	local level = (p and p.level) or 1
-	local deck = {}
+	local owned = {}
 	for id, spell in SpellData do
 		if spell.school == school and spell.levelReq <= level then
-			table.insert(deck, id)
+			table.insert(owned, id)
 		end
 	end
+	return owned
+end
+
+local function sortByCost(deck: { string })
 	table.sort(deck, function(a, b)
 		local sa, sb = SpellData[a], SpellData[b]
 		if sa.cost ~= sb.cost then
@@ -238,6 +247,35 @@ function PlayerDataService.getDeck(player): { string }
 		end
 		return sa.name < sb.name
 	end)
+end
+
+function PlayerDataService.getOwnedCards(player): { string }
+	local owned = ownedCards(profiles[player])
+	sortByCost(owned)
+	return owned
+end
+
+-- Battle deck: the player's custom deck if valid, else everything owned.
+function PlayerDataService.getDeck(player): { string }
+	local p = profiles[player]
+	local owned = ownedCards(p)
+	local deck = owned
+	if p and typeof(p.customDeck) == "table" then
+		local ownedSet = {}
+		for _, id in owned do
+			ownedSet[id] = true
+		end
+		local filtered = {}
+		for _, id in p.customDeck do
+			if ownedSet[id] and not table.find(filtered, id) then
+				table.insert(filtered, id)
+			end
+		end
+		if #filtered >= MIN_DECK then
+			deck = filtered
+		end
+	end
+	sortByCost(deck)
 	return deck
 end
 
@@ -278,6 +316,30 @@ function PlayerDataService.init()
 			PlayerDataService.notify(player, ("Welcome, %s Codeslinger. Circuit Row needs you."):format(school))
 			PlayerDataService.pushHUD(player)
 		end
+	end)
+
+	deckUpdate.OnServerEvent:Connect(function(player, list)
+		local p = profiles[player]
+		if not p or typeof(list) ~= "table" or #list > MAX_DECK then
+			return
+		end
+		local ownedSet = {}
+		for _, id in ownedCards(p) do
+			ownedSet[id] = true
+		end
+		local clean = {}
+		for _, id in list do
+			if typeof(id) == "string" and ownedSet[id] and not table.find(clean, id) then
+				table.insert(clean, id)
+			end
+		end
+		if #clean < MIN_DECK then
+			PlayerDataService.notify(player, ("Deck needs at least %d cards."):format(MIN_DECK))
+			return
+		end
+		p.customDeck = clean
+		PlayerDataService.notify(player, ("Deck saved: %d cards loaded."):format(#clean))
+		PlayerDataService.pushHUD(player)
 	end)
 
 	unlockZone.OnServerEvent:Connect(function(player, zoneId)

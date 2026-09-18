@@ -6,11 +6,13 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local SchoolColors = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("SchoolColors"))
+local SpellData = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("SpellData"))
 local remotes = ReplicatedStorage:WaitForChild("Remotes")
 local hudUpdate = remotes:WaitForChild("HUDUpdate")
 local notifyRemote = remotes:WaitForChild("Notify")
 local unlockZone = remotes:WaitForChild("UnlockZone")
 local selectSchool = remotes:WaitForChild("SelectSchool")
+local deckUpdate = remotes:WaitForChild("DeckUpdate")
 
 local player = Players.LocalPlayer
 
@@ -127,6 +129,140 @@ cancelButton.Activated:Connect(function()
 	dialog.Visible = false
 end)
 
+-- ---------- deck editor ----------
+local latestOwned = {}
+local latestDeck = {}
+local selectedCards = {}
+
+local deckButton = Instance.new("TextButton")
+deckButton.Size = UDim2.fromScale(0.08, 0.05)
+deckButton.Position = UDim2.fromScale(0.01, 0.14)
+deckButton.BackgroundColor3 = Color3.fromRGB(25, 25, 40)
+deckButton.TextColor3 = Color3.fromRGB(200, 80, 255)
+deckButton.TextScaled = true
+deckButton.Font = Enum.Font.Code
+deckButton.Text = "DECK"
+deckButton.Parent = gui
+local deckStroke = Instance.new("UIStroke")
+deckStroke.Color = Color3.fromRGB(200, 80, 255)
+deckStroke.Thickness = 2
+deckStroke.Parent = deckButton
+
+local deckPanel = Instance.new("Frame")
+deckPanel.Size = UDim2.fromScale(0.6, 0.6)
+deckPanel.Position = UDim2.fromScale(0.5, 0.5)
+deckPanel.AnchorPoint = Vector2.new(0.5, 0.5)
+deckPanel.BackgroundColor3 = Color3.fromRGB(12, 12, 22)
+deckPanel.BorderSizePixel = 0
+deckPanel.Visible = false
+deckPanel.ZIndex = 4
+deckPanel.Parent = gui
+local panelStroke = Instance.new("UIStroke")
+panelStroke.Color = Color3.fromRGB(200, 80, 255)
+panelStroke.Thickness = 2
+panelStroke.Parent = deckPanel
+
+local deckTitle = codeLabel(deckPanel, {
+	Size = UDim2.fromScale(0.9, 0.1),
+	Position = UDim2.fromScale(0.05, 0.03),
+	Text = "DECK EDITOR",
+	TextColor3 = Color3.fromRGB(200, 80, 255),
+	ZIndex = 4,
+})
+
+local cardGrid = Instance.new("Frame")
+cardGrid.Size = UDim2.fromScale(0.94, 0.62)
+cardGrid.Position = UDim2.fromScale(0.03, 0.15)
+cardGrid.BackgroundTransparency = 1
+cardGrid.ZIndex = 4
+cardGrid.Parent = deckPanel
+local gridLayout = Instance.new("UIGridLayout")
+gridLayout.CellSize = UDim2.fromScale(0.24, 0.3)
+gridLayout.CellPadding = UDim2.fromScale(0.008, 0.02)
+gridLayout.Parent = cardGrid
+
+local function refreshDeckGrid()
+	for _, child in cardGrid:GetChildren() do
+		if child:IsA("TextButton") then
+			child:Destroy()
+		end
+	end
+	local count = 0
+	for _ in selectedCards do
+		count += 1
+	end
+	deckTitle.Text = ("DECK EDITOR — %d/7 loaded (min 3)"):format(count)
+	for _, spellId in latestOwned do
+		local spell = SpellData[spellId]
+		local card = Instance.new("TextButton")
+		local picked = selectedCards[spellId] == true
+		card.BackgroundColor3 = picked and Color3.fromRGB(45, 30, 60) or Color3.fromRGB(20, 20, 32)
+		card.TextColor3 = picked and Color3.new(1, 1, 1) or Color3.fromRGB(140, 140, 150)
+		card.TextWrapped = true
+		card.TextSize = 14
+		card.Font = Enum.Font.Code
+		card.Text = ("%s\n[%d cyc] %d%%%s"):format(spell.name, spell.cost, spell.accuracy, picked and "\nLOADED" or "")
+		card.ZIndex = 4
+		local stroke = Instance.new("UIStroke")
+		stroke.Color = picked and (SchoolColors[spell.school] or Color3.new(1, 1, 1)) or Color3.fromRGB(60, 60, 70)
+		stroke.Thickness = picked and 3 or 1
+		stroke.Parent = card
+		card.Activated:Connect(function()
+			if selectedCards[spellId] then
+				selectedCards[spellId] = nil
+			else
+				local n = 0
+				for _ in selectedCards do
+					n += 1
+				end
+				if n >= 7 then
+					return
+				end
+				selectedCards[spellId] = true
+			end
+			refreshDeckGrid()
+		end)
+		card.Parent = cardGrid
+	end
+end
+
+local function deckPanelButton(text, xPos, color)
+	local button = Instance.new("TextButton")
+	button.Size = UDim2.fromScale(0.25, 0.1)
+	button.Position = UDim2.fromScale(xPos, 0.85)
+	button.BackgroundColor3 = color
+	button.TextColor3 = Color3.new(0, 0, 0)
+	button.TextScaled = true
+	button.Font = Enum.Font.Code
+	button.Text = text
+	button.ZIndex = 4
+	button.Parent = deckPanel
+	return button
+end
+
+local saveDeckButton = deckPanelButton("SAVE DECK", 0.22, Color3.fromRGB(120, 255, 220))
+local closeDeckButton = deckPanelButton("CLOSE", 0.53, Color3.fromRGB(120, 120, 140))
+
+deckButton.Activated:Connect(function()
+	selectedCards = {}
+	for _, id in latestDeck do
+		selectedCards[id] = true
+	end
+	refreshDeckGrid()
+	deckPanel.Visible = true
+end)
+saveDeckButton.Activated:Connect(function()
+	local list = {}
+	for id in selectedCards do
+		table.insert(list, id)
+	end
+	deckUpdate:FireServer(list)
+	deckPanel.Visible = false
+end)
+closeDeckButton.Activated:Connect(function()
+	deckPanel.Visible = false
+end)
+
 -- school selection (first join)
 local schoolFrame = Instance.new("Frame")
 schoolFrame.Size = UDim2.fromScale(1, 1)
@@ -191,6 +327,8 @@ end
 -- server events
 local schoolChosen = false
 hudUpdate.OnClientEvent:Connect(function(data)
+	latestOwned = data.ownedCards or {}
+	latestDeck = data.deck or {}
 	levelLabel.Text = ("LVL %d  XP %d/%d  %s"):format(data.level, data.xp, data.xpNeeded, data.school or "")
 	creditsLabel.Text = ("CREDITS %d"):format(data.credits)
 	crownsLabel.Text = ("CROWNS %d"):format(data.crowns)
