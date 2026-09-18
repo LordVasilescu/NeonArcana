@@ -63,6 +63,17 @@ local playerBar = makeBar(0.05)
 local enemyBar = makeBar(0.95)
 enemyBar.Fill.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
 
+local allyLabel = Instance.new("TextLabel")
+allyLabel.Size = UDim2.fromScale(0.3, 0.04)
+allyLabel.Position = UDim2.fromScale(0.05, 0.145)
+allyLabel.BackgroundTransparency = 1
+allyLabel.TextColor3 = Color3.fromRGB(120, 255, 220)
+allyLabel.TextScaled = true
+allyLabel.Font = Enum.Font.Code
+allyLabel.TextXAlignment = Enum.TextXAlignment.Left
+allyLabel.Text = ""
+allyLabel.Parent = gui
+
 local statusLabel = Instance.new("TextLabel")
 statusLabel.Size = UDim2.fromScale(0.4, 0.07)
 statusLabel.Position = UDim2.fromScale(0.5, 0.02)
@@ -105,25 +116,47 @@ handLayout.Parent = hand
 local myCycles = 0
 local picked = false
 
+local function buffTags(c): string
+	local extras = {}
+	if c.blades > 0 then
+		table.insert(extras, ("B%d"):format(c.blades))
+	end
+	if c.shields > 0 then
+		table.insert(extras, ("S%d"):format(c.shields))
+	end
+	if c.dots > 0 then
+		table.insert(extras, ("DoT%d"):format(c.dots))
+	end
+	return table.concat(extras, " ")
+end
+
 local function updateBars(state)
+	local allies = {}
+	local enemyName, enemyTags = "Enemy", ""
+	local enemyHealth, enemyMax, enemyAlive = 0, 0, 0
 	for _, c in state.combatants do
-		local bar = c.isPlayer and playerBar or enemyBar
-		bar.Fill.Size = UDim2.fromScale(math.max(0, c.health / c.maxHealth), 1)
-		local extras = {}
-		if c.blades > 0 then
-			table.insert(extras, ("B%d"):format(c.blades))
-		end
-		if c.shields > 0 then
-			table.insert(extras, ("S%d"):format(c.shields))
-		end
-		if c.dots > 0 then
-			table.insert(extras, ("DoT%d"):format(c.dots))
-		end
-		bar.Label.Text = ("%s  %d/%d  %s"):format(c.name, c.health, c.maxHealth, table.concat(extras, " "))
 		if c.isPlayer then
-			myCycles = c.cycles
+			if c.name == player.Name then
+				playerBar.Fill.Size = UDim2.fromScale(math.max(0, c.health / c.maxHealth), 1)
+				playerBar.Label.Text = ("%s  %d/%d  %s"):format(c.name, c.health, c.maxHealth, buffTags(c))
+				myCycles = c.cycles
+			else
+				table.insert(allies, ("%s %d/%d"):format(c.name, c.health, c.maxHealth))
+			end
+		else
+			enemyName = c.name
+			enemyHealth += c.health
+			enemyMax += c.maxHealth
+			if c.health > 0 then
+				enemyAlive += 1
+				enemyTags = buffTags(c)
+			end
 		end
 	end
+	enemyBar.Fill.Size = UDim2.fromScale(enemyMax > 0 and math.max(0, enemyHealth / enemyMax) or 0, 1)
+	local countText = enemyAlive > 1 and (" x%d"):format(enemyAlive) or ""
+	enemyBar.Label.Text = ("%s%s  %d/%d  %s"):format(enemyName, countText, enemyHealth, enemyMax, enemyTags)
+	allyLabel.Text = #allies > 0 and ("ALLIES: " .. table.concat(allies, "  ")) or ""
 end
 
 local function clearHand()

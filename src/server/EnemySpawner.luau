@@ -17,22 +17,18 @@ local PAD_COOLDOWN = 5
 local EnemySpawner = {}
 
 local function hookPad(pad: BasePart, enemyId: string)
-	local cooling = false
+	local padKey = pad:GetFullName()
+	local debounce: { [Player]: boolean } = {}
 	pad.Touched:Connect(function(hit)
-		if cooling then
-			return
-		end
 		local character = hit.Parent
 		local player = character and Players:GetPlayerFromCharacter(character)
-		if player and not BattleRunner.isBusy(player) then
-			cooling = true
-			local originalTransparency = pad.Transparency
-			pad.Transparency = 0.8
-			BattleRunner.startBattle(player, enemyId)
+		if player and not debounce[player] and not BattleRunner.isBusy(player) then
+			debounce[player] = true
 			task.delay(PAD_COOLDOWN, function()
-				pad.Transparency = originalTransparency
-				cooling = false
+				debounce[player] = nil
 			end)
+			-- starts a fight, or joins the one already running on this pad (4 max)
+			BattleRunner.requestJoin(player, enemyId, padKey)
 		end
 	end)
 end

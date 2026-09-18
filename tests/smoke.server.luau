@@ -86,6 +86,11 @@ check("accuracy bonus stored on combatant", geared.accuracyBonus == 10)
 check("DeckUpdate remote exists", ReplicatedStorage.Remotes:FindFirstChild("DeckUpdate") ~= nil)
 check("BuyPack remote exists", ReplicatedStorage.Remotes:FindFirstChild("BuyPack") ~= nil)
 
+-- 6. Group combat surface
+local BattleRunner = require(ServerScriptService.Server.BattleRunner)
+check("BattleRunner.requestJoin exists", typeof(BattleRunner.requestJoin) == "function")
+check("BattleRunner.startBattle shim exists", typeof(BattleRunner.startBattle) == "function")
+
 if failures == 0 then
 	print("SMOKE_RESULT: ALL PASS")
 else
