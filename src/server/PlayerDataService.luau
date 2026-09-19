@@ -280,15 +280,39 @@ function PlayerDataService.getDeck(player): { string }
 	return deck
 end
 
+local LOAD_RETRIES = 3
+local unsafeToSave = {} -- player -> true when the load failed; never overwrite real data with defaults
+
 local function loadProfile(player)
 	local saved = nil
+	local loadFailed = false
 	if store then
-		local loaded, result = pcall(function()
-			return store:GetAsync(tostring(player.UserId))
-		end)
+		local loaded, result = false, nil
+		for attempt = 1, LOAD_RETRIES do
+			loaded, result = pcall(function()
+				return store:GetAsync(tostring(player.UserId))
+			end)
+			if loaded then
+				break
+			end
+			warn(
+				("[PlayerData] load %d/%d failed for %s: %s"):format(
+					attempt,
+					LOAD_RETRIES,
+					player.Name,
+					tostring(result)
+				)
+			)
+			task.wait(attempt)
+		end
 		if loaded then
 			saved = result
+		else
+			loadFailed = true
 		end
+	end
+	if player.Parent ~= Players then
+		return -- left while we were yielding; don't create a ghost profile the autosave would write
 	end
 	local profile = defaultProfile()
 	if typeof(saved) == "table" then
@@ -297,11 +321,18 @@ local function loadProfile(player)
 		end
 	end
 	profiles[player] = profile
+	if loadFailed then
+		unsafeToSave[player] = true
+		PlayerDataService.notify(
+			player,
+			"Profile failed to load. Progress this session will NOT be saved; rejoin to retry."
+		)
+	end
 end
 
 local function saveProfile(player)
 	local p = profiles[player]
-	if not p or not store then
+	if not p or not store or unsafeToSave[player] then
 		return
 	end
 	pcall(function()
@@ -361,6 +392,9 @@ function PlayerDataService.init()
 
 	Players.PlayerAdded:Connect(function(player)
 		loadProfile(player)
+		if not profiles[player] then
+			return
+		end
 		if RunService:IsStudio() and CrownService.getBalance(player) == 0 then
 			CrownService.grant(player.UserId, STUDIO_STARTER_CROWNS)
 		end
@@ -389,6 +423,7 @@ function PlayerDataService.init()
 	Players.PlayerRemoving:Connect(function(player)
 		saveProfile(player)
 		profiles[player] = nil
+		unsafeToSave[player] = nil
 	end)
 
 	-- Autosave sweep
@@ -398,6 +433,24 @@ function PlayerDataService.init()
 			for player in profiles do
 				saveProfile(player)
 			end
+		end
+	end)
+
+	-- Server shutdown: flush everyone in parallel (BindToClose allows ~30s)
+	game:BindToClose(function()
+		if not store then
+			return
+		end
+		local pending = 0
+		for player in profiles do
+			pending += 1
+			task.spawn(function()
+				saveProfile(player)
+				pending -= 1
+			end)
+		end
+		while pending > 0 do
+			task.wait(0.1)
 		end
 	end)
 end

@@ -264,13 +264,28 @@ local function runBattle(rec)
 	end
 end
 
+local busyChecks = {} -- other combat modes (PvP) that also own a player's session
+
 function BattleRunner.isBusy(player): boolean
-	return inBattle[player] ~= nil
+	if inBattle[player] ~= nil then
+		return true
+	end
+	for _, check in busyChecks do
+		if check(player) then
+			return true
+		end
+	end
+	return false
+end
+
+-- Lets another combat mode veto pad joins without a circular require (PvPService uses it).
+function BattleRunner.addBusyCheck(check: (Player) -> boolean)
+	table.insert(busyChecks, check)
 end
 
 -- Touch handler: start a battle at this pad, or join the one in progress.
 function BattleRunner.requestJoin(player: Player, enemyId: string, padKey: string)
-	if inBattle[player] then
+	if BattleRunner.isBusy(player) then
 		return
 	end
 	local def = EnemyData[enemyId]

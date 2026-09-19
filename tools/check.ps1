@@ -1,5 +1,5 @@
 # Full local quality gate for Neon Arcana. Run from anywhere:
-#   .\tools\check.ps1          # format check, lint, type check, build, Studio smoke test
+#   .\tools\check.ps1          # format check, lint, Lune unit tests, type check, build, Studio smoke test
 #   .\tools\check.ps1 -Fast    # skip the Studio smoke test (used by the pre-commit hook)
 #   .\tools\check.ps1 -Fix     # auto-format with StyLua before checking
 param(
@@ -31,6 +31,7 @@ if ($Fix) {
 }
 Step "StyLua check" { stylua --check src tests }
 Step "Selene lint" { selene src tests }
+Step "Lune unit tests" { lune run tests/lune/run }
 Step "Rojo sourcemap" { rojo sourcemap default.project.json -o sourcemap.json }
 
 if (-not (Test-Path "globalTypes.d.luau")) {
@@ -38,7 +39,7 @@ if (-not (Test-Path "globalTypes.d.luau")) {
     Invoke-WebRequest -Uri "https://raw.githubusercontent.com/JohnnyMorganz/luau-lsp/main/scripts/globalTypes.d.luau" -OutFile "globalTypes.d.luau"
 }
 Step "luau-lsp type check" {
-    luau-lsp analyze --definitions=globalTypes.d.luau --sourcemap=sourcemap.json --ignore="Packages/**" src tests
+    luau-lsp analyze --definitions=globalTypes.d.luau --sourcemap=sourcemap.json --ignore="Packages/**" --ignore="tests/lune/**" src tests
 }
 
 # Build to a scratch file. build\NeonArcana.rbxl is the canonical Studio-saved place

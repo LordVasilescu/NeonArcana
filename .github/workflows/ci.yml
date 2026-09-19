@@ -23,6 +23,9 @@ jobs:
       - name: Lint (Selene)
         run: selene src tests
 
+      - name: Unit tests (Lune)
+        run: lune run tests/lune/run
+
       - name: Sourcemap (Rojo)
         run: rojo sourcemap default.project.json -o sourcemap.json
 
@@ -30,7 +33,7 @@ jobs:
         run: curl -fsSL -o globalTypes.d.luau https://raw.githubusercontent.com/JohnnyMorganz/luau-lsp/main/scripts/globalTypes.d.luau
 
       - name: Type check (luau-lsp)
-        run: luau-lsp analyze --definitions=globalTypes.d.luau --sourcemap=sourcemap.json --ignore="Packages/**" src tests
+        run: luau-lsp analyze --definitions=globalTypes.d.luau --sourcemap=sourcemap.json --ignore="Packages/**" --ignore="tests/lune/**" src tests
 
       - name: Build place (Rojo)
         run: rojo build -o /tmp/NeonArcana.ci.rbxl

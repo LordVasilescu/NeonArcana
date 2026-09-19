@@ -31,8 +31,8 @@ smoke test -> commit. Add smoke checks for new systems as they land.
 - [ ] Game page: icon, thumbnails, description, genre tags
 
 ## Phase 3 - Retention & revenue (post-launch)
-- [ ] Daily login rewards; first-purchase double-crowns
-- [ ] Mounts (hoverboards): +40% speed, crown shop - models already exported
+- [x] Daily login rewards (streak credits + 25 crowns); [ ] first-purchase double-crowns
+- [x] Mounts (hoverboards): 500 crowns, +62% speed toggle (ShopService) - models already exported
 - [ ] Pet drones: cosmetic followers, gacha eggs - drone_pet.fbx ready
 - [ ] District 5: "The Undergrid" (Lv 18-25), premium 1250 crowns
 - [x] PvP arena scaffold: plaza duel pad, 1v1 via shared combat engine (ranked seasons later)
@@ -43,5 +43,6 @@ smoke test -> commit. Add smoke checks for new systems as they land.
 - Never copy Wizard101 names/art/audio/maps. Mechanics only.
 - Everything server-authoritative; never trust the client with currency or combat.
 - Free content stays generous (Wizard City was free - that's WHY it converted).
-- Keep the smoke test green; add checks for each new system.
+- Keep the smoke test green; add checks for each new system. Pure logic gets a Lune
+  unit test in tests/lune/ (runs in the pre-commit hook and CI, no Studio needed).
 - Every iteration ends: build relaunched in Studio with F5 + previews rendered for new assets.

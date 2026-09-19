@@ -8,10 +8,28 @@ local Workspace = game:GetService("Workspace")
 
 local SchoolColors = require(ReplicatedStorage.Shared.SchoolColors)
 local MeshVisuals = require(script.Parent.MeshVisuals)
+local PremadeAssets = require(script.Parent.PremadeAssets)
+local AdoptModel = require(script.Parent.AdoptModel)
+local GroundDressing = require(script.Parent.GroundDressing)
 
 local HubService = {}
 
 local PLAZA_RADIUS = 38
+-- ONE floor level. The baseplate/ground top is y=0; every walkable overlay (plaza disc,
+-- roads, pads) is OVERLAY thick and centred on y=0, so its top is SURFACE_Y. Anything
+-- that stands on the ground stands at SURFACE_Y. No steps anywhere.
+local OVERLAY = 0.2
+local SURFACE_Y = OVERLAY / 2
+
+-- The place file ships a SpawnLocation and DuelPad built as 1-stud slabs floating at
+-- y=1.4; flatten them onto the floor too.
+local function flattenPlacePart(name: string)
+	local instance = Workspace:FindFirstChild(name)
+	if instance and instance:IsA("BasePart") then
+		instance.Size = Vector3.new(instance.Size.X, OVERLAY, instance.Size.Z)
+		instance.Position = Vector3.new(instance.Position.X, 0, instance.Position.Z)
+	end
+end
 
 local function part(props): BasePart
 	local p = Instance.new("Part")
@@ -30,23 +48,6 @@ local function cylinder(diameter: number, height: number, y: number, props)
 	p.Size = Vector3.new(height, diameter, diameter)
 	p.CFrame = CFrame.new(0, y, 0) * CFrame.Angles(0, 0, math.rad(90))
 	return p
-end
-
-local function billboard(parent: BasePart, text: string, color: Color3?, width: number?, offsetY: number?)
-	local gui = Instance.new("BillboardGui")
-	gui.Size = UDim2.fromScale(width or 16, 4)
-	gui.StudsOffset = Vector3.new(0, offsetY or 9, 0)
-	gui.AlwaysOnTop = true
-	gui.MaxDistance = 160
-	local label = Instance.new("TextLabel")
-	label.Size = UDim2.fromScale(1, 1)
-	label.BackgroundTransparency = 1
-	label.TextColor3 = color or Color3.fromRGB(120, 255, 220)
-	label.TextScaled = true
-	label.Font = Enum.Font.Code
-	label.Text = text
-	label.Parent = gui
-	gui.Parent = parent
 end
 
 -- Adopt a Studio-imported model by name: scale to fit, stamp at one or more
@@ -72,6 +73,7 @@ local function adoptImported(name: string, fitSize: Vector3, cframes: { CFrame }
 	for index, cframe in cframes do
 		local instance = index == 1 and template or template:Clone()
 		instance:PivotTo(cframe * CFrame.new(0, height / 2, 0))
+		AdoptModel.settle(instance, cframe.Position.Y)
 		for _, descendant in instance:GetDescendants() do
 			if descendant:IsA("BasePart") then
 				descendant.Anchored = true
@@ -84,8 +86,8 @@ end
 
 local function ringCFrame(angleDeg: number, radius: number): CFrame
 	local rad = math.rad(angleDeg)
-	local pos = Vector3.new(math.cos(rad) * radius, 1.25, math.sin(rad) * radius)
-	return CFrame.lookAt(pos, Vector3.new(0, 1.25, 0))
+	local pos = Vector3.new(math.cos(rad) * radius, SURFACE_Y, math.sin(rad) * radius)
+	return CFrame.lookAt(pos, Vector3.new(0, SURFACE_Y, 0))
 end
 
 local function buildFountain(folder: Folder)
@@ -96,7 +98,8 @@ local function buildFountain(folder: Folder)
 			local size = imported:GetExtentsSize()
 			imported:ScaleTo(18 / math.max(size.X, size.Z, 0.001))
 			local scaled = imported:GetExtentsSize()
-			imported:PivotTo(CFrame.new(0, 1.25 + scaled.Y / 2, 0))
+			imported:PivotTo(CFrame.new(0, SURFACE_Y + scaled.Y / 2, 0))
+			AdoptModel.settle(imported, SURFACE_Y)
 		end)
 		if ok then
 			local anchor = imported:FindFirstChildWhichIsA("BasePart", true)
@@ -106,7 +109,6 @@ local function buildFountain(folder: Folder)
 				light.Brightness = 2
 				light.Color = Color3.fromRGB(60, 255, 210)
 				light.Parent = anchor
-				billboard(anchor, "NEON PLAZA", Color3.fromRGB(60, 255, 210), 20, 14)
 			end
 			for _, descendant in imported:GetDescendants() do
 				if descendant:IsA("BasePart") then
@@ -118,7 +120,7 @@ local function buildFountain(folder: Folder)
 	end
 	-- Tripo fountain replaces the procedural one once uploaded
 	if MeshVisuals.available("commons_fountain") then
-		local mesh = MeshVisuals.place("commons_fountain", CFrame.new(0, 1.25, 0), Vector3.new(18, 20, 18), folder)
+		local mesh = MeshVisuals.place("commons_fountain", CFrame.new(0, SURFACE_Y, 0), Vector3.new(18, 20, 18), folder)
 		if mesh then
 			mesh.CanCollide = true
 			local light = Instance.new("PointLight")
@@ -126,7 +128,6 @@ local function buildFountain(folder: Folder)
 			light.Brightness = 2
 			light.Color = Color3.fromRGB(60, 255, 210)
 			light.Parent = mesh
-			billboard(mesh, "NEON PLAZA", Color3.fromRGB(60, 255, 210), 20, 12)
 			return
 		end
 	end
@@ -157,21 +158,11 @@ local function buildFountain(folder: Folder)
 	light.Color = Color3.fromRGB(60, 255, 210)
 	light.Parent = beam
 	beam.Parent = folder
-	billboard(beam, "NEON PLAZA", Color3.fromRGB(60, 255, 210), 20, 10)
 end
 
 local function buildSchoolPylons(folder: Folder)
 	local schools = { "Burnout", "Coolant", "Surge", "Patch", "Leech", "Ghost", "Kernel" }
-	local taglines = {
-		Burnout = "Watch them cook",
-		Coolant = "Outlast everything",
-		Surge = "All or nothing",
-		Patch = "Outheal the pain",
-		Leech = "Their loss, your gain",
-		Ghost = "Twice the trouble",
-		Kernel = "Master of all",
-	}
-	-- ring of 7, angled to dodge the four street mouths on the axes
+	-- ring of 7, angled to dodge the street mouth on +X
 	for i, school in schools do
 		local angle = math.rad(20 + (i - 1) * 45.7)
 		local x, z = math.cos(angle) * 30, math.sin(angle) * 30
@@ -179,21 +170,24 @@ local function buildSchoolPylons(folder: Folder)
 
 		local base = part({
 			Name = school .. "Base",
-			Size = Vector3.new(6, 1, 6),
-			Position = Vector3.new(x, 0.9, z),
+			Size = Vector3.new(6, OVERLAY, 6),
+			Position = Vector3.new(x, 0, z),
 			Material = Enum.Material.Metal,
 			Color = Color3.fromRGB(30, 30, 45),
 		})
 		base.Parent = folder
 
+		-- store crystal cluster tinted in the school colour; neon column if it isn't available
+		local crystal = PremadeAssets.stamp("pylon", CFrame.new(x, SURFACE_Y, z), Vector3.new(5, 10, 5), folder, color)
 		local column = part({
 			Name = school .. "Pylon",
-			Size = Vector3.new(2, 14, 2),
-			Position = Vector3.new(x, 8.4, z),
+			Size = Vector3.new(2, 10, 2),
+			Position = Vector3.new(x, 6.4, z),
 			Material = Enum.Material.Neon,
 			Color = color,
+			Transparency = crystal and 1 or 0,
+			CanCollide = crystal == nil,
 		})
-		billboard(column, school:upper() .. "\n" .. taglines[school], color, 14, 9)
 		column.Parent = folder
 	end
 end
@@ -204,20 +198,30 @@ local function buildShops(folder: Folder)
 		{ name = "GEAR VAULT", angle = 135, color = Color3.fromRGB(80, 180, 255) },
 		{ name = "CROWN EXCHANGE", angle = 315, color = Color3.fromRGB(255, 220, 80) },
 	}
-	for _, shop in shops do
+	for shopIndex, shop in shops do
 		local angle = math.rad(shop.angle)
 		local x, z = math.cos(angle) * 33, math.sin(angle) * 33
 		local pos = Vector3.new(x, 0, z)
 		local facing = CFrame.lookAt(pos + Vector3.new(0, 5, 0), Vector3.new(0, 5, 0))
 
-		local building = part({
-			Name = shop.name,
-			Size = Vector3.new(14, 10, 8),
-			CFrame = facing,
-			Material = Enum.Material.Metal,
-			Color = Color3.fromRGB(24, 24, 36),
-		})
-		building.Parent = folder
+		-- a different store kiosk per shop, facing the fountain; the metal box is the fallback
+		local kiosk = PremadeAssets.stampVariant(
+			"kiosk",
+			shopIndex - 1,
+			CFrame.lookAt(pos + Vector3.new(0, SURFACE_Y, 0), Vector3.new(0, SURFACE_Y, 0)),
+			Vector3.new(12, 9, 10),
+			folder
+		)
+		if not kiosk then
+			local building = part({
+				Name = shop.name,
+				Size = Vector3.new(14, 10, 8),
+				CFrame = facing,
+				Material = Enum.Material.Metal,
+				Color = Color3.fromRGB(24, 24, 36),
+			})
+			building.Parent = folder
+		end
 
 		local trim = part({
 			Name = shop.name .. "_trim",
@@ -225,9 +229,14 @@ local function buildShops(folder: Folder)
 			CFrame = facing * CFrame.new(0, 5.4, 0),
 			Material = Enum.Material.Neon,
 			Color = shop.color,
+			Transparency = kiosk and 1 or 0,
+			CanCollide = kiosk == nil,
 		})
-		billboard(trim, shop.name, shop.color, 16, 4)
 		trim.Parent = folder
+
+		if kiosk then
+			continue
+		end
 
 		local door = part({
 			Name = shop.name .. "_door",
@@ -255,7 +264,7 @@ local function buildSetDressing(folder: Folder)
 	for _, angle in { 225, 350 } do
 		table.insert(billboardCFrames, ringCFrame(angle, 35))
 	end
-	local stallCFrame = CFrame.lookAt(Vector3.new(-20, 1.25, 24), Vector3.new(0, 1.25, 0))
+	local stallCFrame = CFrame.lookAt(Vector3.new(-20, SURFACE_Y, 24), Vector3.new(0, SURFACE_Y, 0))
 	local statueCFrame = ringCFrame(315, 26)
 
 	if not adoptImported("cyber_tree", Vector3.new(7, 12, 7), treeCFrames, folder) then
@@ -283,19 +292,13 @@ end
 
 local function buildQuestGiver(folder: Folder)
 	-- Chief Codewright: our Ambrose. Tripo model once imported/uploaded, capsule until then.
-	local npcCFrame = CFrame.lookAt(Vector3.new(9, 1.25, 4), Vector3.new(0, 1.25, 10))
-	if adoptImported("chief_codewright", Vector3.new(3, 6.5, 3), { npcCFrame }, folder) then
-		local adopted = folder:FindFirstChild("chief_codewright")
-		local anchor = adopted and adopted:FindFirstChildWhichIsA("BasePart", true)
-		if anchor then
-			billboard(anchor, "CHIEF CODEWRIGHT\nQuests up top, choom", Color3.fromRGB(255, 220, 80), 16, 6)
-		end
+	-- Player scale: ~5 studs tall; the Chief stands a touch taller.
+	local npcCFrame = CFrame.lookAt(Vector3.new(9, SURFACE_Y, 4), Vector3.new(0, SURFACE_Y, 10))
+	if adoptImported("chief_codewright", Vector3.new(3, 5.5, 3), { npcCFrame }, folder) then
 		return
 	end
 	if MeshVisuals.available("chief_codewright") then
-		local mesh = MeshVisuals.place("chief_codewright", npcCFrame, Vector3.new(3, 6.5, 3), folder)
-		if mesh then
-			billboard(mesh, "CHIEF CODEWRIGHT\nQuests up top, choom", Color3.fromRGB(255, 220, 80), 16, 5)
+		if MeshVisuals.place("chief_codewright", npcCFrame, Vector3.new(3, 5.5, 3), folder) then
 			return
 		end
 	end
@@ -306,27 +309,33 @@ local function buildQuestGiver(folder: Folder)
 		Material = Enum.Material.Neon,
 		Color = Color3.fromRGB(255, 220, 80),
 	})
-	billboard(body, "CHIEF CODEWRIGHT\nQuests up top, choom", Color3.fromRGB(255, 220, 80), 16, 5)
 	body.Parent = folder
 end
 
 function HubService.build()
 	local folder = Instance.new("Folder")
 	folder.Name = "NeonPlaza"
+	flattenPlacePart("SpawnLocation")
+	flattenPlacePart("DuelPad")
+	GroundDressing.dressPlaza(folder, PLAZA_RADIUS, Vector3.new(1, 0, 0))
 
 	-- plaza disc with a neon rim
-	cylinder(PLAZA_RADIUS * 2, 1.2, 0.65, {
+	cylinder(PLAZA_RADIUS * 2, OVERLAY, 0, {
 		Name = "PlazaFloor",
-		Material = Enum.Material.Slate,
-		Color = Color3.fromRGB(24, 24, 34),
+		Material = Enum.Material.Concrete,
+		Color = Color3.fromRGB(44, 44, 54),
 	}).Parent =
 		folder
 	for i = 1, 24 do
 		local angle = math.rad(i * 15)
 		local stud = part({
 			Name = "RimLight",
-			Size = Vector3.new(1.6, 0.6, 1.6),
-			Position = Vector3.new(math.cos(angle) * (PLAZA_RADIUS - 1), 1.3, math.sin(angle) * (PLAZA_RADIUS - 1)),
+			Size = Vector3.new(1.6, OVERLAY, 1.6),
+			Position = Vector3.new(
+				math.cos(angle) * (PLAZA_RADIUS - 1),
+				SURFACE_Y,
+				math.sin(angle) * (PLAZA_RADIUS - 1)
+			),
 			Material = Enum.Material.Neon,
 			Color = Color3.fromRGB(60, 255, 210),
 		})

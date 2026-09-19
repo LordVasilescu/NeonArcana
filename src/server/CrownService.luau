@@ -36,21 +36,32 @@ local CROWN_PRODUCTS: { [number]: number } = {
 local CrownService = {}
 local balanceCache: { [number]: number } = {} -- userId -> crowns
 
-local function loadBalance(userId: number): number
+local LOAD_RETRIES = 2
+
+-- Returns the balance and whether it can be trusted. A failed DataStore read must
+-- never be cached as 0: the next save would wipe crowns the player paid for.
+local function loadBalance(userId: number): (number, boolean)
 	if balanceCache[userId] then
-		return balanceCache[userId]
+		return balanceCache[userId], true
 	end
-	local value = nil
-	if crownStore then
+	if not crownStore then
+		balanceCache[userId] = 0
+		return 0, true
+	end
+	for attempt = 1, LOAD_RETRIES do
 		local loaded, result = pcall(function()
 			return crownStore:GetAsync(tostring(userId))
 		end)
 		if loaded then
-			value = result
+			balanceCache[userId] = if typeof(result) == "number" then result else 0
+			return balanceCache[userId], true
+		end
+		warn(("[CrownService] load %d/%d failed for %d: %s"):format(attempt, LOAD_RETRIES, userId, tostring(result)))
+		if attempt < LOAD_RETRIES then
+			task.wait(1)
 		end
 	end
-	balanceCache[userId] = if typeof(value) == "number" then value else 0
-	return balanceCache[userId]
+	return 0, false
 end
 
 local function saveBalance(userId: number): boolean
@@ -64,20 +75,28 @@ local function saveBalance(userId: number): boolean
 end
 
 function CrownService.getBalance(player: Player): number
-	return loadBalance(player.UserId)
+	local balance = loadBalance(player.UserId)
+	return balance
 end
 
 -- Server-side grant (receipts, quest rewards, Studio test wallets). NEVER expose to a remote.
-function CrownService.grant(userId: number, amount: number)
-	balanceCache[userId] = loadBalance(userId) + amount
+-- Returns false if the balance could not be loaded (the grant is dropped, not applied to 0).
+function CrownService.grant(userId: number, amount: number): boolean
+	local balance, ok = loadBalance(userId)
+	if not ok then
+		warn(("[CrownService] grant of %d to %d skipped: balance unavailable"):format(amount, userId))
+		return false
+	end
+	balanceCache[userId] = balance + amount
 	saveBalance(userId)
+	return true
 end
 
 -- Returns true if the spend went through. Use for zone unlocks, packs, mounts, etc.
 function CrownService.trySpend(player: Player, amount: number): boolean
 	assert(amount > 0 and amount == math.floor(amount), "invalid spend amount")
-	local balance = loadBalance(player.UserId)
-	if balance < amount then
+	local balance, ok = loadBalance(player.UserId)
+	if not ok or balance < amount then
 		return false
 	end
 	balanceCache[player.UserId] = balance - amount
@@ -110,7 +129,10 @@ MarketplaceService.ProcessReceipt = function(receiptInfo)
 	end
 
 	local userId = receiptInfo.PlayerId
-	local balance = loadBalance(userId)
+	local balance, ok = loadBalance(userId)
+	if not ok then
+		return Enum.ProductPurchaseDecision.NotProcessedYet -- Roblox retries later
+	end
 	balanceCache[userId] = balance + crowns
 	if not saveBalance(userId) then
 		balanceCache[userId] = balance

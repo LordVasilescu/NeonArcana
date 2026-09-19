@@ -126,6 +126,11 @@ local function runDuel(playerA, playerB)
 end
 
 function PvPService.init()
+	-- a duelist must not be pulled into a street fight (both would consume CastRequest)
+	BattleRunner.addBusyCheck(function(player)
+		return duels[player] ~= nil
+	end)
+
 	castRequest.OnServerEvent:Connect(function(player, spellId)
 		local rec = duels[player]
 		if not rec or typeof(spellId) ~= "string" then
@@ -139,23 +144,10 @@ function PvPService.init()
 	local pad = Instance.new("Part")
 	pad.Name = "PvPArena"
 	pad.Anchored = true
-	pad.Size = Vector3.new(10, 1, 10)
-	pad.Position = Vector3.new(-14, 1.3, -22)
+	pad.Size = Vector3.new(10, 0.2, 10) -- flush floor overlay, same level as the plaza
+	pad.Position = Vector3.new(-14, 0, -22)
 	pad.Material = Enum.Material.Neon
 	pad.Color = Color3.fromRGB(255, 60, 120)
-	local gui = Instance.new("BillboardGui")
-	gui.Size = UDim2.fromScale(12, 3)
-	gui.StudsOffset = Vector3.new(0, 5, 0)
-	gui.MaxDistance = 120
-	local label = Instance.new("TextLabel")
-	label.Size = UDim2.fromScale(1, 1)
-	label.BackgroundTransparency = 1
-	label.TextColor3 = Color3.fromRGB(255, 60, 120)
-	label.TextScaled = true
-	label.Font = Enum.Font.Code
-	label.Text = "PVP DUEL PAD\n(2 players)"
-	label.Parent = gui
-	gui.Parent = pad
 	pad.Parent = Workspace
 
 	local debounce = {}

@@ -8,11 +8,13 @@ local Players = game:GetService("Players")
 
 local ZoneData = require(ReplicatedStorage.Shared.ZoneData)
 local PlayerDataService = require(script.Parent.PlayerDataService)
+local PremadeAssets = require(script.Parent.PremadeAssets)
 
 local CHEST_COOLDOWN = 300 -- seconds, per player per chest
 local GEAR_CHANCE = 0.12
 
 local ChestService = {}
+local chestCount = 0
 
 -- gear pool per zone tier: chests can roll the same tier the streets drop
 local ZONE_GEAR = {
@@ -34,19 +36,21 @@ local function makeChest(chestId: string, zoneId: string, position: Vector3, par
 	chest.TopSurface = Enum.SurfaceType.Smooth
 	chest.BottomSurface = Enum.SurfaceType.Smooth
 
-	local gui = Instance.new("BillboardGui")
-	gui.Size = UDim2.fromScale(8, 2)
-	gui.StudsOffset = Vector3.new(0, 3, 0)
-	gui.MaxDistance = 80
-	local label = Instance.new("TextLabel")
-	label.Size = UDim2.fromScale(1, 1)
-	label.BackgroundTransparency = 1
-	label.TextColor3 = Color3.fromRGB(255, 220, 80)
-	label.TextScaled = true
-	label.Font = Enum.Font.Code
-	label.Text = "DATA CACHE"
-	label.Parent = gui
-	gui.Parent = chest
+	-- store chest model as the visual (style cycles per chest); the neon block stays as
+	-- an invisible touch trigger
+	chestCount += 1
+	local model = PremadeAssets.stampVariant(
+		"chest",
+		chestCount,
+		CFrame.new(position.X, 0.1, position.Z), -- on the floor surface (overlay top)
+		Vector3.new(4, 3, 3),
+		parent
+	)
+	if model then
+		chest.Transparency = 1
+		chest.CanCollide = false
+		chest.Size = Vector3.new(5, 3, 4)
+	end
 
 	chest.Touched:Connect(function(hit)
 		local character = hit.Parent
@@ -94,8 +98,8 @@ function ChestService.init()
 	end
 
 	-- two in the plaza for new players to stumble into
-	makeChest("plaza_cache_1", "circuit_row", Vector3.new(24, 0.65, -18), folder)
-	makeChest("plaza_cache_2", "circuit_row", Vector3.new(-26, 0.65, 14), folder)
+	makeChest("plaza_cache_1", "circuit_row", Vector3.new(24, 0, -18), folder)
+	makeChest("plaza_cache_2", "circuit_row", Vector3.new(-26, 0, 14), folder)
 end
 
 return ChestService

@@ -39,10 +39,16 @@ function Convert-Batch([string]$inDir, [string[]]$patterns, [string]$outDir, [st
             continue
         }
         Write-Host "==> $($file.Name) -> $out" -ForegroundColor Cyan
+        # Blender writes warnings to stderr. With $ErrorActionPreference = "Stop", PowerShell 5.1
+        # turns every redirected stderr line into a terminating error, so relax it for this call only.
+        $ErrorActionPreference = "Continue"
         & $blender --background --python (Join-Path $PSScriptRoot $script) -- $file.FullName $out $Tris 2>&1 |
-            Where-Object { $_ -match "^\[(pipeline|anim-pipeline)\]|Error|Traceback" }
-        if ($LASTEXITCODE -ne 0) {
-            Write-Host "    FAILED (exit $LASTEXITCODE)" -ForegroundColor Red
+            Where-Object { "$_" -match "^\[(pipeline|anim-pipeline)\]|Error|Traceback" } |
+            ForEach-Object { Write-Host "    $_" }
+        $blenderExit = $LASTEXITCODE
+        $ErrorActionPreference = "Stop"
+        if ($blenderExit -ne 0) {
+            Write-Host "    FAILED (exit $blenderExit)" -ForegroundColor Red
             $script:failures += $file.Name
         } else {
             Write-Host "    ok" -ForegroundColor Green

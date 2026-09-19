@@ -16,13 +16,17 @@ local PremadeAssets = require(script.Parent.PremadeAssets)
 local ServerStorage = game:GetService("ServerStorage")
 
 local PAD_COOLDOWN = 5
+-- Scale reference: a player character is ~5 studs tall. Mobs read as a head taller,
+-- bosses roughly double.
+local ENEMY_FIT = Vector3.new(5, 6.5, 5)
+local BOSS_FIT = Vector3.new(9, 11, 9)
 
 -- Studio-imported enemy models, scaled once and stashed as clone templates
 local adoptTemplates: { [string]: Model } = {}
 
 local function prepareTemplates()
 	for enemyId, enemy in EnemyData do
-		local fit = enemy.boss and Vector3.new(11, 13, 11) or Vector3.new(6, 7.5, 6)
+		local fit = enemy.boss and BOSS_FIT or ENEMY_FIT
 		local model = Workspace:FindFirstChild(enemyId)
 		if not (model and model:IsA("Model")) and PremadeAssets.ids[enemyId] then
 			model = PremadeAssets.load(PremadeAssets.ids[enemyId])
@@ -60,38 +64,25 @@ local function makePad(enemyId: string, position: Vector3, parent: Instance)
 	local pad = Instance.new("Part")
 	pad.Name = "EnemyPad_" .. enemyId
 	pad.Anchored = true
-	pad.Size = enemy.boss and Vector3.new(14, 1, 14) or Vector3.new(8, 1, 8)
-	pad.Position = position + Vector3.new(0, 0.6, 0)
+	-- flush floor overlay (top at 0.1), same level as the road: no step onto the pad
+	pad.Size = enemy.boss and Vector3.new(14, 0.2, 14) or Vector3.new(8, 0.2, 8)
+	pad.Position = Vector3.new(position.X, 0, position.Z)
 	pad.Material = Enum.Material.Neon
 	pad.Color = SchoolColors[enemy.school] or Color3.new(1, 1, 1)
 	pad.TopSurface = Enum.SurfaceType.Smooth
 	pad.BottomSurface = Enum.SurfaceType.Smooth
 
-	local gui = Instance.new("BillboardGui")
-	gui.Size = UDim2.fromScale(12, 3)
-	gui.StudsOffset = Vector3.new(0, 5, 0)
-	gui.MaxDistance = 120
-	local label = Instance.new("TextLabel")
-	label.Size = UDim2.fromScale(1, 1)
-	label.BackgroundTransparency = 1
-	label.TextColor3 = enemy.boss and Color3.fromRGB(255, 80, 80) or Color3.new(1, 1, 1)
-	label.TextScaled = true
-	label.Font = Enum.Font.Code
-	label.Text = ("%s — Lv %d"):format(enemy.name, enemy.level)
-	label.Parent = gui
-	gui.Parent = pad
-
 	pad.Parent = parent
 	hookPad(pad, enemyId)
 
 	-- real Tripo model standing on the pad; imported template first, cloud mesh fallback
-	local stance = CFrame.lookAt(pad.Position + Vector3.new(0, 0.5, 0), Vector3.new(0, pad.Position.Y, 0))
+	local stance = CFrame.lookAt(pad.Position + Vector3.new(0, 0.1, 0), Vector3.new(0, pad.Position.Y + 0.1, 0))
 	local template = adoptTemplates[enemyId]
 	if template then
 		AdoptModel.stamp(template, stance, parent)
 		return
 	end
-	local fit = enemy.boss and Vector3.new(11, 13, 11) or Vector3.new(6, 7.5, 6)
+	local fit = enemy.boss and BOSS_FIT or ENEMY_FIT
 	task.spawn(function()
 		MeshVisuals.place(enemyId, stance, fit, parent)
 	end)

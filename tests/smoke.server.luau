@@ -90,6 +90,18 @@ check("BuyPack remote exists", ReplicatedStorage.Remotes:FindFirstChild("BuyPack
 local BattleRunner = require(ServerScriptService.Server.BattleRunner)
 check("BattleRunner.requestJoin exists", typeof(BattleRunner.requestJoin) == "function")
 check("BattleRunner.startBattle shim exists", typeof(BattleRunner.startBattle) == "function")
+check("BattleRunner.addBusyCheck exists", typeof(BattleRunner.addBusyCheck) == "function")
+
+-- 6b. Store-model props: loader surface + every slot id is a real number
+local PremadeAssets = require(ServerScriptService.Server.PremadeAssets)
+check("PremadeAssets.stamp exists", typeof(PremadeAssets.stamp) == "function")
+local idsValid = true
+for _, id in PremadeAssets.ids do
+	if typeof(id) ~= "number" or id <= 0 then
+		idsValid = false
+	end
+end
+check("PremadeAssets ids are positive numbers", idsValid)
 
 check("BuyMount remote exists", ReplicatedStorage.Remotes:FindFirstChild("BuyMount") ~= nil)
 
