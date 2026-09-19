@@ -26,3 +26,4 @@ build/
 
 .env
 assets/images/
+assets/export/*.fbm/

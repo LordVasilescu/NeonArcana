@@ -8,6 +8,7 @@
 param(
     [string[]]$Names,
     [switch]$NoStudio,
+    [switch]$SkipConvert,   # reuse assets\export\<name>.fbx when it already exists
     [int]$Tris = 8000
 )
 $ErrorActionPreference = "Stop"
@@ -41,13 +42,26 @@ foreach ($glb in $glbs) {
     $raw = Join-Path $root "assets\raw\$name.glb"
     if ($glb.FullName -ne (Get-Item $raw -ErrorAction SilentlyContinue).FullName) { Move-Item $glb.FullName $raw -Force }
     $fbx = Join-Path $root "assets\export\$name.fbx"
-    Write-Host "==> $name : Blender convert" -ForegroundColor Cyan
+    if ($SkipConvert -and (Test-Path $fbx)) {
+        Write-Host "==> $name : using existing FBX" -ForegroundColor DarkGray
+    } else {
+    # Per-category bake settings: mode, voxel divisor (finer for thin props), tri budget.
+    $prefix = ($name -split "_")[0]
+    switch ($prefix) {
+        { $_ -in "bld","sky","twr" }              { $mode = "remesh_planar"; $div = 160; $tris = 7500 }
+        { $_ -in "lamp","sign","gate","bike","moto" } { $mode = "remesh";        $div = 320; $tris = 6000 }
+        "npc"                                     { $mode = "remesh";        $div = 220; $tris = 7500 }
+        default                                   { $mode = "remesh_planar"; $div = 220; $tris = 7500 }
+    }
+    if ($Tris -ne 8000) { $tris = $Tris }
+    Write-Host "==> $name : Blender bake ($mode, div $div, $tris tris)" -ForegroundColor Cyan
     $ErrorActionPreference = "Continue"
-    & $blender --background --python (Join-Path $PSScriptRoot "tripo_to_roblox.py") -- $raw $fbx $Tris 2>&1 |
-        Where-Object { "$_" -match "^\[pipeline\]|Error|Traceback" } | ForEach-Object { Write-Host "    $_" }
+    & $blender --background --python (Join-Path $PSScriptRoot "tripo_bake.py") -- $raw $fbx $tris 1024 $mode $div 16 2>&1 |
+        Where-Object { "$_" -match "^\[bake\]|Error|Traceback" } | ForEach-Object { Write-Host "    $_" }
     $exit = $LASTEXITCODE
     $ErrorActionPreference = "Stop"
     if ($exit -ne 0 -or -not (Test-Path $fbx)) { Write-Host "    FAILED" -ForegroundColor Red; continue }
+    }
 
     if ($NoStudio) { continue }
     $studio = Get-Process RobloxStudioBeta -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowTitle -like "*NeonArcana*" } | Select-Object -First 1

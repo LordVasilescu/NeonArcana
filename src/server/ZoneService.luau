@@ -101,7 +101,8 @@ local function packRow(
 	seedBase: number,
 	heightRange: { number },
 	setback: number,
-	gap: number
+	gap: number,
+	pool: string
 )
 	local curb = ZoneData.ROAD_WIDTH / 2
 	local cursor = start
@@ -112,7 +113,7 @@ local function packRow(
 		local height = math.random(heightRange[1], heightRange[2])
 		local probe = dir * cursor + right * ((curb + setback) * side)
 		local facing = CFrame.lookAt(probe, probe - right * side)
-		local model = PremadeAssets.stampVariantHeight("tower", seed, facing, height, MAX_FOOTPRINT, folder)
+		local model = PremadeAssets.stampVariantHeight(pool, seed, facing, height, MAX_FOOTPRINT, folder)
 		if not model then
 			local width = 18
 			proceduralTower(
@@ -144,7 +145,19 @@ end
 local function buildSkyline(folder: Folder, dir: Vector3, isXAxis: boolean, start: number, zoneIndex: number)
 	local right = Vector3.new(-dir.Z, 0, dir.X)
 	for side = -1, 1, 2 do
-		packRow(folder, dir, right, isXAxis, start, side, zoneIndex * 5, FRONT_HEIGHT, FRONT_SETBACK, FRONT_GAP)
+		packRow(
+			folder,
+			dir,
+			right,
+			isXAxis,
+			start,
+			side,
+			zoneIndex * 5,
+			FRONT_HEIGHT,
+			FRONT_SETBACK,
+			FRONT_GAP,
+			"tower"
+		)
 		packRow(
 			folder,
 			dir,
@@ -155,7 +168,8 @@ local function buildSkyline(folder: Folder, dir: Vector3, isXAxis: boolean, star
 			zoneIndex * 7 + 40,
 			BACK_HEIGHT,
 			BACK_SETBACK,
-			math.random(8, 24)
+			math.random(8, 24),
+			"skyline"
 		)
 	end
 end

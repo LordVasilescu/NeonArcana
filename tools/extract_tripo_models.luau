@@ -8,7 +8,27 @@ local roblox = require("@lune/roblox")
 local fs = require("@lune/fs")
 local process = require("@lune/process")
 
-local PREFIXES = { "bld_", "lamp_", "prop_", "veh_", "kiosk_", "chest_", "npc_", "gate_", "sign_" }
+local PREFIXES = {
+	"bld_",
+	"sky_",
+	"twr_",
+	"lamp_",
+	"prop_",
+	"vend_",
+	"dump_",
+	"bar_",
+	"gen_",
+	"term_",
+	"arcade_",
+	"veh_",
+	"bike_",
+	"moto_",
+	"kiosk_",
+	"chest_",
+	"npc_",
+	"gate_",
+	"sign_",
+}
 local OUT = "assets/tripo_models.rbxm"
 
 local place = process.args[1] or "build/NeonArcana.demo.rbxl"
@@ -46,11 +66,12 @@ local function collect(container: any)
 		end
 	end
 end
-collect(game:GetService("Workspace"))
+-- stored copies first, then Workspace, so a freshly re-imported model wins over its old copy
 local stored = game:GetService("ServerStorage"):FindFirstChild("TripoModels")
 if stored then
 	collect(stored)
 end
+collect(game:GetService("Workspace"))
 
 local names = {}
 for _, m in folder:GetChildren() do

@@ -1,3 +1,7 @@
+> Superseded 2026-09-19: the world now uses ready-made Tripo community models listed in
+> TRIPO_PICKS.md (5 credits per export instead of 55 per generation). The 26 generated
+> models below remain in assets/tripo_models.rbxm but no pool references them.
+
 # Tripo generation queue (browser, 55 credits each)
 
 Style anchor on EVERY prompt: `low-poly stylized cyberpunk ..., dark metal body with <colour>
